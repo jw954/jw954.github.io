@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experience | Junhao Wang</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/script.js"></script>
+</head>
+<body data-theme="dark" data-style="default" data-font="default">
+  <header>
+    <h1>Junhao&nbsp;Wang</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="research.html">Research</a>
+      <a href="publications.html">Publications</a>
+      <a href="cv.html">CV</a>
+    </nav>
+    <div class="header-controls">
+      <button id="theme-toggle" onclick="toggleTheme()">Switch to light mode</button>
+    </div>
+  </header>
+  <main>
+    <section>
+      <h2>Research Experience</h2>
+      
+      <div class="item">
+        <h3>Computer Vision Research Intern — <a href="http://www.cs.toronto.edu/~kyros/" target="_blank">Toronto Computational Imaging Group</a></h3>
+        <p class="meta">Aug 2025 – Present · Toronto, ON, Canada</p>
+        <p>Working on undergraduate thesis focused on generating color images/videos/bursts from binary quanta frames using single-photon imaging at <b>100,000 fps</b>. Utilizing real data captures from single photon avalanche diodes (SPAD) and examining distribution of generations and performance in low-light conditions where conventional CMOS cameras fail. Calibrating SPAD dataset to implement a non-parametric single photon simulation pipeline from standard RGB datasets. Performing downstream tasks such as segmentation and detection solely from one-bit images based generations.</p>
+      </div>
+
+      <div class="item">
+        <h3>Computer Vision Research Intern — <a href="https://safeai-lab.github.io" target="_blank">Safe AI Lab</a>, Carnegie Mellon University</h3>
+        <p class="meta">Aug 2024 – Present · Pittsburgh, PA, USA · Supervisor: Prof. Ding Zhao</p>
+        <p>Co-first author of <i>FeatureEndo-4DGS: Real-Time Deformable Surgical Scene Reconstruction and Segmentation with 4D Gaussian Splatting</i> (ML4H Symposium 2025, PMLR). Innovated the <b>first real-time</b> 4D Gaussian Splatting pipeline that jointly reconstructs and segments deformable surgical scenes via feature distillation from 2D foundation models. Leveraged foundation models for semantic scene understanding and outperformed SOTA methods (LGS, EndoGaussian, EndoNeRF) on PSNR, SSIM, LPIPS, and RMSE. Achieved competitive segmentation vs. SAM/SAM2/MedSAM with higher Dice and IoU. Ablations showed a lightweight semantic feature decoder boosts segmentation scores by up to <b>10%</b>. Worked with CUDA and C++ to adapt parallelized rasterizers for training and rendering. Explored autoregressive large models with diffusion-loss prediction of Gaussians and camera properties for rigid objects.</p>
+      </div>
+
+      <div class="item">
+        <h3>Computer Vision Research Intern — <a href="https://www.eecg.utoronto.ca/~genov/" target="_blank">Intelligent Sensory Microsystems Laboratory (ISML)</a></h3>
+        <p class="meta">Apr 2023 – Sep 2023 · Toronto, ON, Canada · Supervisor: Prof. Roman Genov</p>
+        <p>Contributed to work published at IEEE VLSI 2024 on software-defined image sensors. Automated fundamental matrix calculation for pixel-coded epipolar imaging with OpenCV (achieving <b>>600% speed-up</b>). Adapted RAFT-inspired deep learning for optical flow using flux over intensity-based methods. Devised frame-differencing for color-coded flow maps and motion estimation. Generated banded mask patterns to filter indirectly/directly lit light. Implemented Huffman, RLE, and Wavelet transforms for optimized lossless compression.</p>
+      </div>
+
+      <div class="item">
+        <h3>ML Research Intern — Solar Energy Research Institute of Singapore (SERIS, NUS)</h3>
+        <p class="meta">May 2022 – Aug 2022 · Singapore</p>
+        <p>Trained CNNs for parametric estimation of Perovskite Solar Cells (PSCs). Achieved high-precision thickness estimation (<b>&lt;2 nm</b>) for specific layers using Bayesian Optimization. Used transfer matrix methods, diverse sampling, and optical simulations for dataset generation. Authored a comprehensive research report and literature review comparing traditional approaches versus optimized deep learning pipelines.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Professional Experience</h2>
+      
+      <div class="item">
+        <h3>ML Compiler Engineer Intern — <a href="https://www.cerebras.net/" target="_blank">Cerebras Systems</a></h3>
+        <p class="meta">May 2024 – Jun 2025 · Toronto, ON, Canada</p>
+        <p>Migrated legacy assembler to an <b>LLVM-based backend</b>, enabling modular compilation and eliminating scalability bottlenecks. Utilized TableGen and LIT, adding support for next-gen architectures on Wafer-Scale Engines. Implemented instructions, features, and templates for new architectures, passing <b>100% of kernel unit tests</b>. Revamped debugging framework, improving diagnostics and team efficiency while eliminating recurring crashes. Disabled legacy fallback and shifted to auto-generated infrastructures, reducing runtime issues by <b>>20%</b>.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Extracurricular Experience</h2>
+
+      <div class="item">
+        <h3>Research Director & Academic Director — <a href="https://utmist.gitlab.io/" target="_blank">University of Toronto Machine Intelligence Student Team (UTMIST)</a></h3>
+        <p class="meta">Sep 2023 – Present · Toronto, ON, Canada</p>
+        <p>Launched and led undergraduate research initiatives, supervising aspiring researchers through project scoping and implementation. Built and ran a targeted recruiting pipeline for high-potential researchers and team leads. Matched students with labs/faculty advisors and turned open questions into well-scoped, high-impact ML projects. Oversaw academic and research directives, curated SOTA paper readings, mentorship sessions, and ran a joint IEEE UofT × CSSU × UTMIST resume review clinic. Held office hours to guide undergrads in ML coursework and research. Built sequence modeling and deep reinforcement learning pipeline for trading via buy/sell signal classification based on risk-to-reward. Contributed to MVP of FashionBot, an AI-powered recommendation system for personalized outfit suggestions.</p>
+      </div>
+
+      <div class="item">
+        <h3>Sport Analyst (Hockey) — <a href="https://www.utsportsanalytics.ca/" target="_blank">University of Toronto Sports Analytics Student Group</a></h3>
+        <p class="meta">Jan 2023 – Jun 2023 · Toronto, ON, Canada</p>
+        <p>Co-authored paper <i>Comparing Defensive Pressures Using Possession Retention Probability and Expected Goals</i> (LINHAC 2023). Finalist: <b>Top 5/50+ international teams</b>; invited to present at Linköping University, Sweden; paper published in conference proceedings. Analyzed Sportlogiq SHL dataset and built visualizations with matplotlib and seaborn. Contributed to XGBoost modeling connecting offense generation to body/stick checks via Δ expected goals. Produced key figures and diagrams for the paper.</p>
+      </div>
+    </section>
+
+    <section class="awards">
+      <h2>Scholarships & Awards</h2>
+      <ul>
+        <li><b>Select Equity Data Science Award in Engineering Science</b> ($16,000) — Aug 2023<br>
+        <i>Issued by University of Toronto; funded by Select Equity Group L.P.</i></li>
+        
+        <li><b>Ian and Shirley Rowe Innovation & Global Impact Award</b> ($10,000 team) — Aug 2023<br>
+        <i>Awarded for Praxis III project demonstrating collaboration and sustainable impact.</i></li>
+        
+        <li><b>NSERC Undergraduate Student Research Awards</b> — Apr 2023<br>
+        <i>National award supporting outstanding undergraduates in research.</i></li>
+        
+        <li><b>Engineering Science Research Opportunities Program (ESROP) Global</b> — Feb 2023<br>
+        <i>Awarded a selective fellowship to conduct TEM research at the Max Planck Institute (Hamburg, Germany); opted for another opportunity.</i></li>
+        
+        <li><b>Barbara Zdasiuk Scholarship</b> — Aug 2022<br>
+        <i>Issued by University of Toronto for academic standing.</i></li>
+        
+        <li><b>Governor General's Academic Medal</b> — Jun 2022<br>
+        <i>Highest academic standing in secondary institution (Canada).</i></li>
+        
+        <li><b>Engineering Science Research Opportunities Program (ESROP) Global</b> — Feb 2022<br>
+        <i>Fellowship to conduct PSC research at National University of Singapore.</i></li>
+        
+        <li><b>René Descartes Scholarship (National Mathematics Scholarship)</b> ($20,000) — Apr 2021<br>
+        <i>University of Waterloo CS Program; one of ten national recipients (declined).</i></li>
+        
+        <li><b>Dean's List Scholar</b> (×6) — Sep 2021 – May 2024<br>
+        <i>University of Toronto.</i></li>
+        
+        <li><b>Engineering Science Entrance Scholarship</b> — Apr 2021<br>
+        <i>University of Toronto.</i></li>
+        
+        <li><b>National AP Scholar</b> — May 2019, May 2020<br>
+        <i>College Board.</i></li>
+        
+        <li><b>Canadian Seniors Mathematics Competition Honour Roll & Provincial Team Champions</b> — Nov 2019<br>
+        <i>Ranked 99th percentile individually; team won provincial champions.</i></li>
+      </ul>
+    </section>
+  </main>
+  <footer>
+    <p>© 2025 Junhao Wang. All rights reserved.</p>
+  </footer>
+</body>
+</html>

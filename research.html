@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research | Junhao Wang</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/script.js"></script>
+</head>
+<body data-theme="dark" data-style="default" data-font="default">
+  <header>
+    <h1>Junhao&nbsp;Wang</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="publications.html">Publications</a>
+      <a href="experience.html">Experience</a>
+      <a href="cv.html">CV</a>
+    </nav>
+    <div class="header-controls">
+      <button id="theme-toggle" onclick="toggleTheme()">Switch to light mode</button>
+    </div>
+  </header>
+  <main>
+    <section>
+      <h2>Research Interests</h2>
+      <p>My research lies at the intersection of computational imaging, computer vision, and machine learning. I'm passionate about building systems that push the boundaries of visual perception, particularly in challenging conditions where conventional cameras fail. Below are some of the key areas I'm currently exploring.</p>
+      
+      <div class="item">
+        <h3>Computational Imaging & Single-Photon Sensing</h3>
+        <p>I'm working on generating color images and videos from binary quanta frames using single-photon avalanche diodes (SPADs) at 100,000 fps. This involves developing non-parametric simulation pipelines from standard RGB datasets and examining system performance in extreme low-light conditions where conventional CMOS cameras fail. My work includes performing downstream tasks like segmentation and detection solely from one-bit image-based generations.</p>
+      </div>
+
+      <div class="item">
+        <h3>3D/4D Reconstruction & Gaussian Splatting</h3>
+        <p>I develop real-time 4D Gaussian Splatting systems for dynamic scene reconstruction. My work on FeatureEndo-4DGS introduced the first real-time pipeline that jointly reconstructs and segments deformable surgical scenes via feature distillation from 2D foundation models. I'm also exploring autoregressive large models with diffusion-loss prediction of Gaussians and camera properties for rigid objects.</p>
+      </div>
+
+      <div class="item">
+        <h3>Differentiable Rendering & Inverse Problems</h3>
+        <p>Using differentiable rendering techniques, I work on solving inverse problems in computer vision. This includes optimizing scene parameters, material properties, and lighting conditions through gradient-based methods. My research focuses on making these methods practical for real-world applications in medical imaging and computational photography.</p>
+      </div>
+
+      <div class="item">
+        <h3>Software-Defined Image Sensors</h3>
+        <p>I've contributed to developing pixel-coded epipolar imaging systems with motion-adaptive spatially varying imaging speeds. This work involves automating fundamental matrix calculations, adapting RAFT-inspired deep learning for optical flow using flux over intensity-based methods, and implementing compression algorithms for optimized data handling.</p>
+      </div>
+
+      <div class="item">
+        <h3>Generative Modeling for Vision</h3>
+        <p>I explore generative models for creating and enhancing visual data, particularly in scenarios with limited or degraded input. This includes working with foundation models for semantic understanding, feature distillation, and developing lightweight decoders that boost performance in resource-constrained environments.</p>
+      </div>
+
+      <div class="item">
+        <h3>Safe & Robust Vision Systems</h3>
+        <p>I'm interested in building vision systems that are reliable and safe for deployment in critical applications like medical imaging and autonomous systems. This involves developing methods for uncertainty quantification, robustness to distribution shifts, and interpretable predictions that clinicians and engineers can trust.</p>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <p>© 2025 Junhao Wang. All rights reserved.</p>
+  </footer>
+</body>
+</html>

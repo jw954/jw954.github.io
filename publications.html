@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publications | Junhao Wang</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/script.js"></script>
+</head>
+<body data-theme="dark" data-style="default" data-font="default">
+  <header>
+    <h1>Junhao&nbsp;Wang</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="research.html">Research</a>
+      <a href="experience.html">Experience</a>
+      <a href="cv.html">CV</a>
+    </nav>
+    <div class="header-controls">
+      <button id="theme-toggle" onclick="toggleTheme()">Switch to light mode</button>
+    </div>
+  </header>
+  <main>
+    <section>
+      <h2>Publications</h2>
+      <p class="meta"><i>* denotes equal contribution</i></p>
+
+      <div class="item">
+        <h3>FeatureEndo-4DGS: Real-Time Deformable Surgical Scene Reconstruction and Segmentation with 4D Gaussian Splatting</h3>
+        <p class="meta">Kai Li*, <b>Junhao Wang*</b>, William Han, Ding Zhao<br>
+        <i>AHLI Machine Learning for Health (ML4H) Symposium Proceedings 2025</i><br>
+        <a href="https://arxiv.org/pdf/2503.06161" target="_blank">Paper</a></p>
+        <p>We present FeatureEndo-4DGS, the first real-time 4D Gaussian Splatting pipeline that jointly reconstructs and segments deformable surgical scenes via feature distillation from 2D foundation models. Our method leverages foundation models for semantic scene understanding and outperformed state-of-the-art methods (LGS, EndoGaussian, EndoNeRF) on PSNR, SSIM, LPIPS, and RMSE metrics. We achieved competitive segmentation performance compared to SAM/SAM2/MedSAM with higher Dice and IoU scores. Ablation studies showed that our lightweight semantic feature decoder boosts segmentation scores by up to 10%. We worked with CUDA and C++ to adapt parallelized rasterizers for training and rendering of images and feature maps.</p>
+      </div>
+
+      <div class="item">
+        <h3>23,000-Exposures/s 360fps-Readout Software-Defined Image Sensor with Motion-Adaptive Spatially Varying Imaging Speed</h3>
+        <p class="meta">Roberto Rangel, Xiaonong Sun, Ayandev Barman, Rahul Gulve, Savo Bajic, Jingmin Wang, <b>Harry Wang</b>, David B. Lindell, Kiriakos N. Kutulakos, Roman Genov<br>
+        <i>IEEE Symposium on VLSI Technology and Circuits 2024</i><br>
+        <a href="https://ieeexplore.ieee.org/document/10631335" target="_blank">Paper</a></p>
+        <p>This work presents a software-defined image sensor capable of 23,000 exposures per second with 360fps readout and motion-adaptive spatially varying imaging speed. I contributed by automating fundamental matrix calculation for pixel-coded epipolar imaging with OpenCV (achieving >600% speed-up), adapting RAFT-inspired deep learning for optical flow using flux over intensity-based methods, devising frame-differencing for color-coded flow maps and motion estimation, generating banded mask patterns to filter indirectly/directly lit light, and implementing Huffman, RLE, and Wavelet transforms for optimized lossless compression.</p>
+      </div>
+
+      <div class="item">
+        <h3>Comparing Defensive Pressures Using Possession Retention Probability and Expected Goals</h3>
+        <p class="meta">David Awosoga*, Justin Cui*, Aujin Li*, Jaden Majumdar*, <b>Junhao Wang*</b><br>
+        <i>Linköping Hockey Analytics Conference (LINHAC) Proceedings 2023</i><br>
+        <a href="https://www.ida.liu.se/research/sportsanalytics/LINHAC/LINHAC23/papers/paper-students-Waterloo-Toronto.pdf" target="_blank">Paper</a></p>
+        <p>As part of the University of Toronto Sports Analytics Student Group, we developed a novel approach to quantifying defensive pressure in hockey using possession retention probability and expected goals. Our paper was selected as a finalist (Top 5 out of 50+ international teams) and we were invited to present our work at Linköping University in Sweden. The paper was published in the official LINHAC proceedings. We analyzed the Sportlogiq SHL dataset, built visualizations with matplotlib and seaborn, and contributed to XGBoost modeling connecting offense generation to body/stick checks via Δ expected goals.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Research Reports</h2>
+      <div class="item">
+        <h3>Geometric Parameter Estimations of Perovskite Solar Cells Based on Optical Simulations</h3>
+        <p class="meta"><b>Junhao Wang</b><br>
+        <i>arXiv preprint 2022</i><br>
+        <a href="https://arxiv.org/pdf/2503.10102" target="_blank">Paper</a></p>
+        <p>This report presents a deep learning approach for parametric estimation of Perovskite Solar Cells (PSCs). I trained CNNs for high-precision thickness estimation (&lt;2 nm) for specific layers using Bayesian Optimization. The work utilized transfer matrix methods, diverse sampling, and optical simulations for dataset generation. The report includes a comprehensive literature review comparing traditional approaches versus optimized deep learning pipelines.</p>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <p>© 2025 Junhao Wang. All rights reserved.</p>
+  </footer>
+</body>
+</html>
