@@ -6,42 +6,82 @@
   <title>Experience | Junhao Wang</title>
   <link rel="stylesheet" href="assets/style.css">
   <script defer src="assets/script.js"></script>
+  <meta name="description" content="Research, industry and leadership experience of Junhao Wang: Toronto Computational Imaging Group, CMU Safe AI Lab, ISML, SERIS (NUS), Cerebras Systems and UTMIST.">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="color-scheme" content="light dark">
+  <link rel="canonical" href="https://jw954.github.io/experience.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Junhao Wang">
+  <meta property="og:title" content="Experience | Junhao Wang">
+  <meta property="og:description" content="Research, industry and leadership experience of Junhao Wang: Toronto Computational Imaging Group, CMU Safe AI Lab, ISML, SERIS (NUS), Cerebras Systems and UTMIST.">
+  <meta property="og:url" content="https://jw954.github.io/experience.html">
+  <meta property="og:image" content="https://jw954.github.io/assets/profile_pic.jpeg">
+  <meta property="og:image:alt" content="Portrait of Junhao Wang">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Experience | Junhao Wang">
+  <meta name="twitter:description" content="Research, industry and leadership experience of Junhao Wang: Toronto Computational Imaging Group, CMU Safe AI Lab, ISML, SERIS (NUS), Cerebras Systems and UTMIST.">
+  <meta name="twitter:image" content="https://jw954.github.io/assets/profile_pic.jpeg">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400..700&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&amp;display=swap">
+  <link rel="stylesheet" href="assets/monograph/monograph.css">
+  <script defer src="assets/monograph/monograph.js"></script>
+  <script defer src="assets/monograph/glance.js"></script>
 </head>
 <body data-theme="dark" data-style="default" data-font="default">
+  <script>(function(){var t="light";try{var s=localStorage.getItem("theme");if(s==="dark"||s==="light")t=s;}catch(e){}document.body.setAttribute("data-theme",t);var r=document.documentElement;r.setAttribute("data-theme",t);r.classList.add("m-js");})();</script>
+  <a class="m-skip" href="#content">Skip to content</a>
   <header>
     <h1>Junhao&nbsp;Wang</h1>
+    <p class="m-role"><span>Engineering Science</span> <span>University of Toronto</span></p>
     <nav>
       <a href="index.html">Home</a>
       <a href="research.html">Research</a>
       <a href="publications.html">Publications</a>
+      <a href="experience.html">Experience</a>
       <a href="cv.html">CV</a>
     </nav>
+    <ul class="m-links" aria-label="Profiles and contact">
+      <li><a class="m-ext" href="https://scholar.google.ca/citations?user=tF65htsAAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar</a></li>
+      <li><a class="m-ext" href="https://www.linkedin.com/in/junhao-wang-4ba488200/" target="_blank" rel="noopener">LinkedIn</a></li>
+      <li class="m-js-only"><button type="button" class="m-copy" data-copy-email>Copy email</button></li>
+      <li><a class="m-dl" href="assets/CV_Junhao_Wang.pdf" download>Download CV</a></li>
+    </ul>
     <div class="header-controls">
+      <button type="button" class="m-k m-js-only" data-palette-open aria-keyshortcuts="Meta+K Control+K"><span class="m-k__label">Search</span><kbd class="m-k__kbd" aria-hidden="true">⌘K</kbd></button>
       <button id="theme-toggle" onclick="toggleTheme()">Switch to light mode</button>
     </div>
   </header>
   <main>
+    <div id="content" class="m-anchor" tabindex="-1"></div>
+    <section class="m-glance" id="career" data-glance="full" hidden></section>
+
     <section>
       <h2>Research Experience</h2>
       
+      <div class="m-anchor" id="exp-tcig"></div>
       <div class="item">
         <h3>Computer Vision Research Intern — <a href="http://www.cs.toronto.edu/~kyros/" target="_blank">Toronto Computational Imaging Group</a></h3>
         <p class="meta">Aug 2025 – Present · Toronto, ON, Canada</p>
         <p>Working on undergraduate thesis focused on generating color images/videos/bursts from binary quanta frames using single-photon imaging at <b>100,000 fps</b>. Utilizing real data captures from single photon avalanche diodes (SPAD) and examining distribution of generations and performance in low-light conditions where conventional CMOS cameras fail. Calibrating SPAD dataset to implement a non-parametric single photon simulation pipeline from standard RGB datasets. Performing downstream tasks such as segmentation and detection solely from one-bit images based generations.</p>
       </div>
 
+      <div class="m-anchor" id="exp-safeai"></div>
       <div class="item">
         <h3>Computer Vision Research Intern — <a href="https://safeai-lab.github.io" target="_blank">Safe AI Lab</a>, Carnegie Mellon University</h3>
         <p class="meta">Aug 2024 – Present · Pittsburgh, PA, USA · Supervisor: Prof. Ding Zhao</p>
         <p>Co-first author of <i>FeatureEndo-4DGS: Real-Time Deformable Surgical Scene Reconstruction and Segmentation with 4D Gaussian Splatting</i> (ML4H Symposium 2025, PMLR). Innovated the <b>first real-time</b> 4D Gaussian Splatting pipeline that jointly reconstructs and segments deformable surgical scenes via feature distillation from 2D foundation models. Leveraged foundation models for semantic scene understanding and outperformed SOTA methods (LGS, EndoGaussian, EndoNeRF) on PSNR, SSIM, LPIPS, and RMSE. Achieved competitive segmentation vs. SAM/SAM2/MedSAM with higher Dice and IoU. Ablations showed a lightweight semantic feature decoder boosts segmentation scores by up to <b>10%</b>. Worked with CUDA and C++ to adapt parallelized rasterizers for training and rendering. Explored autoregressive large models with diffusion-loss prediction of Gaussians and camera properties for rigid objects.</p>
       </div>
 
+      <div class="m-anchor" id="exp-isml"></div>
       <div class="item">
         <h3>Computer Vision Research Intern — <a href="https://www.eecg.utoronto.ca/~genov/" target="_blank">Intelligent Sensory Microsystems Laboratory (ISML)</a></h3>
         <p class="meta">Apr 2023 – Sep 2023 · Toronto, ON, Canada · Supervisor: Prof. Roman Genov</p>
         <p>Contributed to work published at IEEE VLSI 2024 on software-defined image sensors. Automated fundamental matrix calculation for pixel-coded epipolar imaging with OpenCV (achieving <b>>600% speed-up</b>). Adapted RAFT-inspired deep learning for optical flow using flux over intensity-based methods. Devised frame-differencing for color-coded flow maps and motion estimation. Generated banded mask patterns to filter indirectly/directly lit light. Implemented Huffman, RLE, and Wavelet transforms for optimized lossless compression.</p>
       </div>
 
+      <div class="m-anchor" id="exp-seris"></div>
       <div class="item">
         <h3>ML Research Intern — Solar Energy Research Institute of Singapore (SERIS, NUS)</h3>
         <p class="meta">May 2022 – Aug 2022 · Singapore</p>
@@ -52,6 +92,7 @@
     <section>
       <h2>Professional Experience</h2>
       
+      <div class="m-anchor" id="exp-cerebras"></div>
       <div class="item">
         <h3>ML Compiler Engineer Intern — <a href="https://www.cerebras.net/" target="_blank">Cerebras Systems</a></h3>
         <p class="meta">May 2024 – Jun 2025 · Toronto, ON, Canada</p>
@@ -62,12 +103,14 @@
     <section>
       <h2>Extracurricular Experience</h2>
 
+      <div class="m-anchor" id="exp-utmist"></div>
       <div class="item">
         <h3>Research Director & Academic Director — <a href="https://utmist.gitlab.io/" target="_blank">University of Toronto Machine Intelligence Student Team (UTMIST)</a></h3>
         <p class="meta">Sep 2023 – Present · Toronto, ON, Canada</p>
         <p>Launched and led undergraduate research initiatives, supervising aspiring researchers through project scoping and implementation. Built and ran a targeted recruiting pipeline for high-potential researchers and team leads. Matched students with labs/faculty advisors and turned open questions into well-scoped, high-impact ML projects. Oversaw academic and research directives, curated SOTA paper readings, mentorship sessions, and ran a joint IEEE UofT × CSSU × UTMIST resume review clinic. Held office hours to guide undergrads in ML coursework and research. Built sequence modeling and deep reinforcement learning pipeline for trading via buy/sell signal classification based on risk-to-reward. Contributed to MVP of FashionBot, an AI-powered recommendation system for personalized outfit suggestions.</p>
       </div>
 
+      <div class="m-anchor" id="exp-sports"></div>
       <div class="item">
         <h3>Sport Analyst (Hockey) — <a href="https://www.utsportsanalytics.ca/" target="_blank">University of Toronto Sports Analytics Student Group</a></h3>
         <p class="meta">Jan 2023 – Jun 2023 · Toronto, ON, Canada</p>
@@ -75,6 +118,7 @@
       </div>
     </section>
 
+    <div class="m-anchor" id="awards"></div>
     <section class="awards">
       <h2>Scholarships & Awards</h2>
       <ul>
@@ -117,6 +161,12 @@
     </section>
   </main>
   <footer>
+    <ul class="m-foot-links" aria-label="Profiles and contact">
+      <li><a href="https://scholar.google.ca/citations?user=tF65htsAAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar</a></li>
+      <li><a href="https://www.linkedin.com/in/junhao-wang-4ba488200/" target="_blank" rel="noopener">LinkedIn</a></li>
+      <li><a href="assets/CV_Junhao_Wang.pdf" download>Download CV</a></li>
+      <li class="m-js-only"><button type="button" class="m-copy" data-copy-email>Copy email</button></li>
+    </ul>
     <p>© 2025 Junhao Wang. All rights reserved.</p>
   </footer>
 </body>
