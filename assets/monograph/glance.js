@@ -47,6 +47,15 @@
   var lastW = 0;
   var linked = null;
   var measureCtx = doc.createElement('canvas').getContext('2d');
+  var SEEN_KEY = 'm-glance-drawn';
+
+  /* The draw-in plays once per browsing session; reloads and return visits show the finished chart. */
+  function seen() {
+    try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch (e) { return false; }
+  }
+  function markSeen() {
+    try { sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* storage unavailable */ }
+  }
 
   /* ---------- utils ---------- */
   function esc(s) {
@@ -143,7 +152,7 @@
     var t0 = D0.getTime();
     var t1 = D1.getTime();
     var sx = function (d) { return x0 + (d.getTime() - t0) / (t1 - t0) * (x1 - x0); };
-    var delay = function (d) { return Math.round(120 + 900 * (d.getTime() - t0) / (t1 - t0)); };
+    var delay = function (d) { return Math.round(60 + 520 * (d.getTime() - t0) / (t1 - t0)); };
 
     var bg = [];
     var fg = [];
@@ -248,8 +257,8 @@
       g.push(
         '<a class="g-item g-item--ms" href="publications.html#' + m.id + '" data-k="' + k + '" tabindex="-1" aria-label="' + esc('Publication: ' + m.title + ', ' + m.venue + '. ' + m.when.replace(' · ', ' ') + '.') + '">' +
           '<rect class="g-hit" x="' + hx.toFixed(1) + '" y="' + hy + '" width="' + hw.toFixed(1) + '" height="36" rx="5"/>' +
-          '<path class="g-ms" d="M' + cx.toFixed(1) + ' ' + (cy - 6) + 'l6 6-6 6-6-6z" style="--d:' + (delay(m.date) + 260) + 'ms"/>' +
-          '<text class="g-ms-label g-fade" x="' + lx.toFixed(1) + '" y="' + ty + '" style="--d:' + (delay(m.date) + 320) + 'ms">' + esc(m.label) + '</text>' +
+          '<path class="g-ms" d="M' + cx.toFixed(1) + ' ' + (cy - 6) + 'l6 6-6 6-6-6z" style="--d:' + (delay(m.date) + 180) + 'ms"/>' +
+          '<text class="g-ms-label g-fade" x="' + lx.toFixed(1) + '" y="' + ty + '" style="--d:' + (delay(m.date) + 220) + 'ms">' + esc(m.label) + '</text>' +
         '</a>'
       );
       it.push({ e: { kind: 'ms', m: m }, geo: { x: cx - 6, y: cy - 6, w: 12, h: 12 } });
@@ -293,7 +302,7 @@
     var nowAnchor = nx + 16 > W ? 'end' : 'middle';
     var nowLabelX = nowAnchor === 'end' ? nx + 4 : nx;
     var now =
-      '<g class="g-fade" style="--d:1050ms">' +
+      '<g class="g-fade" style="--d:640ms">' +
         '<line class="g-now" x1="' + nx + '" x2="' + nx + '" y1="' + (topY + 3) + '" y2="' + axisY + '"/>' +
         '<circle class="g-now-dot" cx="' + nx + '" cy="' + (topY + 3) + '" r="3.5"/>' +
         '<text class="g-now-label" x="' + nowLabelX + '" y="12" text-anchor="' + nowAnchor + '">NOW</text>' +
@@ -430,15 +439,16 @@
       list.forEach(function (en) {
         if (!en.isIntersecting || drawn) return;
         drawn = true;
+        markSeen();
         io.disconnect();
         chart.getBoundingClientRect();
         requestAnimationFrame(function () {
           chart.classList.add('is-anim');
           chart.classList.remove('is-armed');
-          setTimeout(function () { chart.classList.remove('is-anim'); }, 2400);
+          setTimeout(function () { chart.classList.remove('is-anim'); }, 1600);
         });
       });
-    }, { threshold: 0.35 });
+    }, { threshold: 0.25 });
     io.observe(chart);
   }
 
@@ -472,6 +482,7 @@
     tip.className = 'm-tip';
     tip.setAttribute('aria-hidden', 'true');
     mount.hidden = false;
+    if (seen()) drawn = true;
     render();
     bind();
     arm();

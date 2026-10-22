@@ -392,7 +392,7 @@
       '<div class="m-cmdk__scrim" data-close></div>' +
       '<div class="m-cmdk__panel" role="dialog" aria-modal="true" aria-label="Command palette">' +
         '<div class="m-cmdk__field">' +
-          '<input class="m-cmdk__input" type="text" role="combobox" aria-expanded="true" aria-controls="m-cmdk-list" aria-autocomplete="list" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search pages, sections and actions" aria-label="Search pages, sections and actions">' +
+          '<input class="m-cmdk__input" type="text" role="combobox" aria-expanded="true" aria-controls="m-cmdk-list" aria-autocomplete="list" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search pages and actions" aria-label="Search pages, sections and actions">' +
           '<button type="button" class="m-cmdk__esc" data-close>Esc</button>' +
         '</div>' +
         '<div class="m-cmdk__list" id="m-cmdk-list" role="listbox" aria-label="Results"></div>' +
@@ -405,6 +405,7 @@
     var list = wrap.querySelector('.m-cmdk__list');
     var empty = wrap.querySelector('.m-cmdk__empty');
     var escBtn = wrap.querySelector('.m-cmdk__esc');
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) escBtn.textContent = 'Close';
     var opener = null;
     var items = [];
     var shown = [];
