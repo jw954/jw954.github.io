@@ -43,6 +43,9 @@
   var toastEl = null, toastTimer = 0;
   function toast(msg) {
     if (!toastEl) return;
+    // a modal dialog sits in the top layer, so the toast has to live inside it to be seen
+    var host = doc.querySelector('dialog[open]') || doc.body;
+    if (toastEl.parentNode !== host) host.appendChild(toastEl);
     toastEl.textContent = msg;
     // force reflow so the transition replays on rapid repeats
     void toastEl.offsetWidth;
@@ -402,9 +405,12 @@
             var tagNode = cur; cur = cur.splitText(m[2].length);
             var tag = el('span', 'award-tag'); tagNode.parentNode.replaceChild(tag, tagNode); tag.appendChild(tagNode);
           }
-          cur = cur.splitText(m[3].length);
+          // keep "— date" together so the dash never ends a line on its own
+          var lead = /^\s*/.exec(m[3])[0].length;
+          if (lead) cur = cur.splitText(lead);
           if (m[4]) {
-            var dateNode = cur; if (m[5].length) dateNode.splitText(m[4].length);
+            var dateNode = cur;
+            if (m[5].length) dateNode.splitText(m[3].length - lead + m[4].length);
             var date = el('span', 'award-date'); dateNode.parentNode.replaceChild(date, dateNode); date.appendChild(dateNode);
           }
         });
