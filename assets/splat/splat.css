@@ -452,9 +452,17 @@ html:not(.js) .cite-btn, .cite-btn[hidden] { display: none; }
 .page .toc { display: block; width: auto; margin: clamp(40px, 6vw, 72px) 0 0; }
 .anchor { display: block; height: 0; }
 .toc-title { margin: 0 0 10px; color: var(--muted); font: 500 .6875rem/1.4 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
-.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 8px; }
+/* narrow screens: one scrolling row, so its height never depends on font metrics (no CLS on font swap) */
+.toc ol {
+  list-style: none; display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  margin: -4px calc(-1 * var(--gutter)) -4px -4px; padding: 4px var(--gutter) 4px 4px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+}
+.toc ol::-webkit-scrollbar { display: none; }
+.toc li { flex: none; }
 .toc a {
-  display: block; padding: 6px 12px; border: 1px solid var(--hair); border-radius: 999px;
+  display: block; padding: 6px 12px; border: 1px solid var(--hair); border-radius: 999px; white-space: nowrap;
   color: var(--muted); font: 500 .875rem/1.3 var(--f-body); text-decoration: none; transition: color .2s, border-color .2s;
 }
 .page .toc a:hover { color: var(--ink); border-color: var(--hair-strong); background: none; }
@@ -576,7 +584,8 @@ body > footer .copy-btn { height: 26px; }
   }
   .page--experience main > section { grid-column: 2; }
   .page--experience main > section:first-of-type { padding-top: clamp(48px, 6vw, 96px); }
-  .toc ol { display: block; border-left: 1px solid var(--hair); }
+  .toc ol { display: block; border-left: 1px solid var(--hair); overflow: visible; margin: 0; padding: 0; -webkit-mask-image: none; mask-image: none; }
+  .toc a { white-space: normal; }
   .toc a { border: 0; border-radius: 0; padding: 7px 0 7px 16px; margin-left: -1px; border-left: 1px solid transparent; }
   .toc a[aria-current="location"] { border-left-color: var(--accent); }
   html.js .hero-visual { margin-right: calc(-1 * min(56px, (100vw - var(--maxw)) / 2 - 24px)); }
