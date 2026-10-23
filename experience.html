@@ -26,10 +26,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
   <link rel="stylesheet" href="assets/quanta/quanta.css">
-  <script defer src="assets/quanta/quanta.js"></script>
+  <script defer blocking="render" src="assets/quanta/quanta.js"></script>
 </head>
 <body data-theme="dark" data-style="default" data-font="default">
-  <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t==='light'?'light':'dark';document.body.setAttribute('data-theme',t);var h=document.documentElement;h.setAttribute('data-theme',t);h.classList.add('qx-js');})();</script>
+  <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){var s={};try{Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:function(k){return k in s?s[k]:null},setItem:function(k,v){s[k]=String(v)},removeItem:function(k){delete s[k]}}})}catch(_){}}t=t==='light'?'light':'dark';document.body.setAttribute('data-theme',t);var h=document.documentElement;h.setAttribute('data-theme',t);h.classList.add('qx-js');var m=document.querySelector('meta[name=theme-color]');if(m&&t==='light')m.setAttribute('content','#F3F5FA');})();</script>
   <a class="qx-skip" href="#content">Skip to content</a>
   <header>
     <a class="qx-home" href="index.html">

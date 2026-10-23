@@ -13,6 +13,20 @@
  *   photon amber  #FFC266            #A86200 (text-ink #965700 for 4.5:1)
  */
 
+/* The original script writes --bg-offset-y on <body> on every scroll; registering
+   it as non-inherited keeps that from restyling the whole subtree. */
+@property --bg-offset-y { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
+:root { --head-h: 64px; }
+@media (max-width: 760px) { :root { --head-h: 104px; } }
+
+/* No transitions until the theme has settled (avoids a navy → light flash). */
+html.qx-js:not(.qx-ready) body,
+html.qx-js:not(.qx-ready) *,
+html.qx-js:not(.qx-ready) #theme-toggle::before,
+html.qx-js:not(.qx-ready) .pill::after,
+html.qx-js:not(.qx-ready) .qx-more::after { transition: none !important; }
+
 /* ------------------------------------------------------------------ tokens */
 body {
   --q-bg: #0A0F1F;
@@ -38,7 +52,6 @@ body {
   --maxw: 1200px;
   --gutter: clamp(16px, 4.2vw, 40px);
   --rail: 168px;
-  --head-h: 64px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   color-scheme: dark;
 }
@@ -575,7 +588,8 @@ html.qx-anim .qx-window .avatar {
 }
 
 /* readout + controls (built by sensor.js) */
-.qx-readout {
+.qx-readout,
+.qx-sensor-ui {
   margin: 22px 0 0;
   color: var(--q-muted);
   font: 400 0.75rem/1.5 var(--f-mono);
@@ -597,8 +611,16 @@ html.qx-anim .qx-window .avatar {
   background: var(--q-muted);
   transition: background-color 0.2s ease;
 }
-.qx-readout[data-mode="play"] .qx-ro-state::before,
-.qx-readout[data-mode="single"] .qx-ro-state::before { background: var(--q-photon); }
+.qx-sensor-ui[data-mode="play"] .qx-ro-state::before,
+.qx-sensor-ui[data-mode="single"] .qx-ro-state::before { background: var(--q-photon); }
+.qx-sensor-ui {
+  grid-column: 2;
+  grid-row: 1 / 7;
+  align-self: start;
+  min-width: 0;
+  margin-top: calc(100% + 28px);   /* under the square window: 6px offset + 22px gap */
+}
+.qx-sensor-ui:not(.is-ready) { visibility: hidden; }
 .qx-ro-frames { white-space: nowrap; }
 .qx-ro-num {
   color: var(--q-photon-ink);
@@ -950,19 +972,19 @@ main:has(> section.awards) .item > .meta {
 }
 .qx-exp-lane + .qx-exp-lane { border-top: 1px solid var(--q-hair); }
 .qx-exp-lane-label {
-  padding: 14px 12px 0 0;
+  padding: 16px 12px 0 0;
   color: var(--q-muted);
-  font: 500 0.6875rem/1.4 var(--f-mono);
+  font: 500 0.71875rem/1.4 var(--f-mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.qx-exp-track { position: relative; height: calc(var(--rows, 1) * 36px + 10px); container-type: inline-size; }
+.qx-exp-track { position: relative; height: calc(var(--rows, 1) * 38px + 12px); }
 .qx-exp-bar {
   position: absolute;
-  top: calc(var(--row, 0) * 36px + 7px);
-  height: 32px;
-  min-width: 6px;
-  color: var(--q-muted);
+  top: calc(var(--row, 0) * 38px + 8px);
+  height: 34px;
+  min-width: 8px;
+  color: var(--q-text-2);
   text-decoration: none;
   border-radius: 2px;
 }
@@ -970,13 +992,10 @@ main:has(> section.awards) .item > .meta {
   position: absolute;
   left: 0;
   top: 0;
-  max-width: min(260px, calc((100 - var(--l, 0)) * 1cqw - 6px));
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--q-muted);
-  font: 400 0.6875rem/1.3 var(--f-mono);
-  letter-spacing: 0.02em;
+  color: var(--q-text-2);
+  font: 400 0.75rem/1.35 var(--f-mono);
+  letter-spacing: 0.01em;
   transition: color 0.15s ease;
 }
 .qx-exp-fill {
@@ -984,28 +1003,27 @@ main:has(> section.awards) .item > .meta {
   left: 0;
   right: 0;
   bottom: 4px;
-  height: 9px;
-  background: color-mix(in srgb, var(--q-link) 38%, transparent);
-  border-left: 2px solid var(--q-link);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--q-link);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
-.qx-exp-bar.is-open .qx-exp-fill {
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
-}
+/* ongoing roles carry an amber leading edge at "now" */
+.qx-exp-bar.is-open .qx-exp-fill { box-shadow: inset -3px 0 0 var(--q-photon); }
 .qx-exp-bar:hover .qx-exp-fill,
 .qx-exp-bar:focus-visible .qx-exp-fill,
-.qx-exp-bar.is-lit .qx-exp-fill { background: var(--q-photon); border-left-color: var(--q-photon); }
+.qx-exp-bar.is-lit .qx-exp-fill { background: var(--q-photon); box-shadow: none; }
 .qx-exp-bar:hover .qx-exp-label,
 .qx-exp-bar:focus-visible .qx-exp-label,
 .qx-exp-bar.is-lit .qx-exp-label { color: var(--q-photon-ink); }
-.qx-exp-bar:focus-visible { outline-offset: 2px; }
+.qx-exp-bar:focus-visible { outline-offset: 3px; }
+.qx-roles .item:focus { outline: none; }
 .qx-exp-axis {
   position: relative;
   height: 30px;
   margin-left: var(--lab);
   color: var(--q-muted);
-  font: 400 0.6875rem/30px var(--f-mono);
+  font: 400 0.75rem/30px var(--f-mono);
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
@@ -1395,13 +1413,14 @@ body[data-theme="light"] .qx-dialog::backdrop { background: rgba(10, 15, 31, 0.3
   .intro .identity { grid-row: 1; }
   .intro .profile-links { grid-row: 2; }
   .qx-sensor { grid-column: 1; grid-row: 3; width: 100%; max-width: 520px; margin: 44px 0 0; }
-  .intro-content > p:nth-of-type(1) { grid-row: 4; margin-top: 48px; }
-  .intro-content > p:nth-of-type(2) { grid-row: 5; }
-  .intro-content > p:nth-of-type(3) { grid-row: 6; }
+  .qx-sensor-ui { grid-column: 1; grid-row: 4; width: 100%; max-width: 520px; margin-top: 22px; }
+  .intro-content > p:nth-of-type(1) { grid-row: 5; margin-top: 48px; }
+  .intro-content > p:nth-of-type(2) { grid-row: 6; }
+  .intro-content > p:nth-of-type(3) { grid-row: 7; }
 }
 
 @media (max-width: 760px) {
-  body { --rail: 0px; --head-h: 104px; }
+  body { --rail: 0px; }
   header, .qx-header { flex-wrap: wrap; padding-top: 10px; padding-bottom: 0; row-gap: 2px; }
   header nav { order: 3; flex: 1 0 100%; justify-content: space-between; gap: 0; }
   header nav a { padding: 12px 2px 13px; font-size: 0.8125rem; }
@@ -1432,10 +1451,10 @@ body[data-theme="light"] .qx-dialog::backdrop { background: rgba(10, 15, 31, 0.3
   .qx-exp-chart { --lab: 0px; }
   .qx-exp-lane { grid-template-columns: minmax(0, 1fr); }
   .qx-exp-lane-label { padding: 10px 0 0; }
-  .qx-exp-track { height: calc(var(--rows, 1) * 22px + 8px); }
-  .qx-exp-bar { top: calc(var(--row, 0) * 22px + 4px); height: 20px; }
+  .qx-exp-track { height: calc(var(--rows, 1) * 20px + 12px); }
+  .qx-exp-bar { top: calc(var(--row, 0) * 20px + 6px); height: 16px; }
   .qx-exp-label { display: none; }
-  .qx-exp-fill { bottom: 5px; }
+  .qx-exp-fill { bottom: 4px; }
 
   .qx-pal-foot { display: none; }
   .qx-window::after, .qx-cvframe::after { inset: -7px; }
@@ -1477,10 +1496,18 @@ body[data-theme="light"] .qx-dialog::backdrop { background: rgba(10, 15, 31, 0.3
   .intro-content > p:nth-of-type(1) { font-size: 11.5pt; }
   .intro .profile-links .pill { border-color: #bbb; }
   header, .qx-header { position: static; background: none; border-bottom: 1px solid #ccc; -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .header-controls, .qx-progress, .qx-toast, .qx-skip, .qx-readout, .qx-canvas,
-  .qx-dialog, .qx-actions, .qx-copy, .qx-cvbar, .qx-exposure, .qx-foot-k, .qx-window::after { display: none !important; }
+  .header-controls, .qx-progress, .qx-toast, .qx-skip, .qx-readout, .qx-sensor-ui, .qx-canvas,
+  .qx-dialog, .qx-actions, .qx-copy, .qx-cvbar, .qx-cvframe, .qx-exposure, .qx-foot-k, .qx-window::after { display: none !important; }
   .qx-home::before, header nav a[aria-current="page"]::after { display: none; }
-  .intro { grid-template-columns: minmax(0, 1fr) 160px; column-gap: 32px; }
+  /* the ≤900px layout also matches a printed page: restore the two-column hero */
+  .intro { grid-template-columns: minmax(0, 1fr) 150px; grid-template-rows: auto auto auto auto auto 1fr; column-gap: 28px; }
+  .qx-sensor { grid-column: 2; grid-row: 1 / 7; width: 150px; max-width: none; margin: 0; }
+  .intro .identity { grid-row: 1; }
+  .intro .profile-links { grid-row: 2; }
+  .intro-content > p:nth-of-type(1) { grid-row: 3; margin-top: 14pt; }
+  .intro-content > p:nth-of-type(2) { grid-row: 4; }
+  .intro-content > p:nth-of-type(3) { grid-row: 5; }
+  main section > p a[href$=".pdf"]::after { content: " (jw954.github.io/assets/CV_Junhao_Wang.pdf)"; }
   .qx-window { box-shadow: none; }
   .intro h1 { font-size: 32pt; }
   main > section, main > section:first-of-type { padding-top: 18pt; }

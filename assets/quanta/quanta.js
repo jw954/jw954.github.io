@@ -25,11 +25,12 @@
   var BASE = '';
   var MONTHS = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
 
-  function currentPage() {
-    var p = (location.pathname.split('/').pop() || '').toLowerCase();
-    return p && /\.html?$/.test(p) ? p : 'index.html';
+  /* Page name without extension: "/research", "/research.html" → "research"; "/" → "index". */
+  function pageName(href) {
+    var p = String(href || '').split(/[?#]/)[0].split('/').pop().toLowerCase().replace(/\.html?$/, '');
+    return p || 'index';
   }
-  var PAGE = (d.body && d.body.getAttribute('data-qx-page')) || currentPage();
+  var PAGE = (d.body && d.body.getAttribute('data-qx-page')) || pageName(location.pathname);
   if (PAGE === '404') { BASE = '/'; CV = '/' + CV; }
 
   function el(tag, cls, text) {
@@ -81,12 +82,36 @@
     if (html.getAttribute('data-theme') !== t) html.setAttribute('data-theme', t);
     var meta = d.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', t === 'light' ? '#F3F5FA' : '#0A0F1F');
+    if (typeof window.updateThemeToggleButton === 'function') window.updateThemeToggleButton(t);
     var btn = d.getElementById('theme-toggle');
     if (btn) btn.title = btn.textContent;
     var palTheme = d.getElementById('qx-opt-theme-label');
     if (palTheme) palTheme.textContent = t === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
   }
+  function guardToggle() {
+    var orig = window.toggleTheme;
+    if (typeof orig !== 'function' || orig.qxGuarded) return;
+    var guarded = function () {
+      var before = d.body.getAttribute('data-theme');
+      try { orig.apply(this, arguments); }
+      catch (e) {
+        // storage unavailable: the original sets the attribute before it throws
+        if (d.body.getAttribute('data-theme') === before) d.body.setAttribute('data-theme', before === 'dark' ? 'light' : 'dark');
+        syncTheme();
+      }
+    };
+    guarded.qxGuarded = true;
+    window.toggleTheme = guarded;
+  }
+  function applyStoredTheme() {
+    var t = storedTheme() || 'dark';
+    if (d.body.getAttribute('data-theme') !== t) d.body.setAttribute('data-theme', t);
+    syncTheme();
+  }
   function initTheme() {
+    guardToggle();
+    // back/forward cache: another page may have changed the theme meanwhile
+    window.addEventListener('pageshow', function (e) { if (e.persisted) applyStoredTheme(); });
     var t = storedTheme() || 'dark';
     d.body.setAttribute('data-theme', t);
     if (typeof window.updateThemeToggleButton === 'function') window.updateThemeToggleButton(t);
@@ -117,6 +142,23 @@
     });
   }
 
+  /* Close a modal <dialog> only when the press and the release both land on the
+     backdrop, outside the dialog box (not on its own padding, and not at the end
+     of a drag that started inside it). */
+  function lightDismiss(dlg, close) {
+    var downOutside = false;
+    function outside(e) {
+      var r = dlg.getBoundingClientRect();
+      return e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom);
+    }
+    dlg.addEventListener('pointerdown', function (e) { downOutside = outside(e); });
+    dlg.addEventListener('click', function (e) {
+      var ok = downOutside && outside(e);
+      downOutside = false;
+      if (ok) close();
+    });
+  }
+
   /* ------------------------------------------------------------- toast */
   var toastEl, toastTimer;
   function toast(msg) {
@@ -137,8 +179,9 @@
 
   function copyText(text) {
     function fallback() {
+      var prev = d.activeElement;
       try {
-        var host = d.querySelector('dialog[open]') || d.body;
+        var host = d.querySelector('dialog[open]') || d.body;   // never inside an inert region
         var ta = el('textarea');
         ta.value = text;
         ta.setAttribute('readonly', '');
@@ -147,8 +190,12 @@
         ta.select();
         var ok = d.execCommand('copy');
         ta.remove();
+        if (prev && prev.focus && prev !== d.body) prev.focus({ preventScroll: true });
         return Promise.resolve(ok);
-      } catch (e) { return Promise.resolve(false); }
+      } catch (e) {
+        if (prev && prev.focus && prev !== d.body) prev.focus({ preventScroll: true });
+        return Promise.resolve(false);
+      }
     }
     if (navigator.clipboard && window.isSecureContext) {
       return navigator.clipboard.writeText(text).then(function () { return true; }, fallback);
@@ -164,8 +211,8 @@
   /* ------------------------------------------------------- header + nav */
   function initNav() {
     d.querySelectorAll('header nav a').forEach(function (a) {
-      var href = (a.getAttribute('href') || '').toLowerCase();
-      if (href === PAGE) a.setAttribute('aria-current', 'page');
+      if (pageName(a.getAttribute('href')) === PAGE) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
     });
     var nav = d.querySelector('header nav');
     if (nav && !nav.hasAttribute('aria-label')) nav.setAttribute('aria-label', 'Primary');
@@ -191,7 +238,7 @@
     function queue() { if (!queued) { queued = true; requestAnimationFrame(update); } }
     window.addEventListener('scroll', queue, { passive: true });
     window.addEventListener('resize', queue);
-    update();
+    queue();   // never force a layout while the page is still being enhanced
   }
 
   function initFooter() {
@@ -225,6 +272,12 @@
 
     var paras = d.querySelectorAll('.intro-content > p');
     if (paras[1]) wrapText(paras[1], /100,000 fps/, function () { return el('span', 'qx-data'); });
+
+    // Focus order follows the visual order: Copy → profiles → sensor controls.
+    // (The links move as-is; their text and hrefs are untouched.)
+    var links = d.querySelector('.intro .profile-links');
+    var identity = d.querySelector('.intro .identity');
+    if (links && identity && identity.nextSibling !== links) identity.parentNode.insertBefore(links, identity.nextSibling);
 
     var copy = d.querySelector('[data-qx-copy]');
     if (copy) {
@@ -275,6 +328,11 @@
     for (var n = meta.firstChild; n && n.nodeName !== 'BR'; n = n.nextSibling) s += n.textContent;
     return s.replace(/\*/g, '').split(',').map(function (a) { return a.trim(); }).filter(Boolean);
   }
+  var TEX = { 'ä': '{\\"a}', 'ö': '{\\"o}', 'ü': '{\\"u}', 'Ä': '{\\"A}', 'Ö': '{\\"O}', 'Ü': '{\\"U}', 'ë': '{\\"e}', 'ï': '{\\"i}',
+    'é': "{\\'e}", 'É': "{\\'E}", 'á': "{\\'a}", 'í': "{\\'i}", 'ó': "{\\'o}", 'ú': "{\\'u}", 'è': '{\\`e}', 'à': '{\\`a}',
+    'ê': '{\\^e}', 'â': '{\\^a}', 'ñ': '{\\~n}', 'ç': '{\\c c}', 'å': '{\\aa}', 'ø': '{\\o}', 'ß': '{\\ss}',
+    '&': '\\&', '%': '\\%', '#': '\\#', '_': '\\_', '$': '\\$', 'Δ': '{$\\Delta$}', '–': '--', '—': '---' };
+  function tex(v) { return String(v).replace(/[äöüÄÖÜëïéÉáíóúèàêâñçåøß&%#_$Δ–—]/g, function (c) { return TEX[c]; }); }
   function bibtexFor(item) {
     var title = item.querySelector('h3').textContent.trim();
     var meta = item.querySelector('.meta');
@@ -290,15 +348,15 @@
     var key = last + year + word.replace(/[^a-z0-9]/g, '');
     var href = link ? link.getAttribute('href') : '';
     var arx = /arxiv\.org\/(?:pdf|abs)\/(\d{4}\.\d{4,5})/.exec(href || '');
-    var fields = [['title', title], ['author', authors.join(' and ')]];
+    var fields = [['title', '{' + tex(title) + '}'], ['author', tex(authors.join(' and '))]];
     var type;
     if (/arXiv/i.test(venue)) {
       type = 'misc';
-      fields.push(['howpublished', venue]);
+      fields.push(['howpublished', tex(venue)]);
       if (arx) { fields.push(['eprint', arx[1]]); fields.push(['archivePrefix', 'arXiv']); }
     } else {
       type = 'inproceedings';
-      fields.push(['booktitle', venue]);
+      fields.push(['booktitle', tex(venue)]);
     }
     if (year) fields.push(['year', year]);
     if (href) fields.push(['url', href]);
@@ -347,6 +405,7 @@
     head.appendChild(hw); head.appendChild(x);
     var pre = el('pre');
     pre.setAttribute('tabindex', '0');
+    pre.setAttribute('role', 'region');
     pre.setAttribute('aria-label', 'BibTeX entry');
     var foot = el('div', 'qx-cite-foot');
     foot.appendChild(el('span', null, 'Generated from the title, authors, venue and year listed on this page.'));
@@ -356,7 +415,7 @@
     dlg.appendChild(head); dlg.appendChild(pre); dlg.appendChild(foot);
     d.body.appendChild(dlg);
     x.addEventListener('click', function () { dlg.close(); });
-    dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+    lightDismiss(dlg, function () { dlg.close(); });
     copy.addEventListener('click', function () {
       copyText(dlg._bib || '').then(function (ok) {
         copy.textContent = ok ? 'Copied' : 'Copy failed';
@@ -564,25 +623,24 @@
       }
     }
 
+    function frac(t) { return (Math.min(Math.max(t, t0), t1) - t0) / (t1 - t0); }
+    var built = [];
     lanes.forEach(function (lane) {
       var row = el('div', 'qx-exp-lane');
       row.appendChild(el('div', 'qx-exp-lane-label', lane.name));
       var track = el('div', 'qx-exp-track');
-      var ends = [];
-      lane.roles.slice().sort(function (a, b) { return a.r.s - b.r.s; }).forEach(function (role) {
-        var k = 0;
-        while (ends[k] != null && ends[k] > role.r.s) k++;
-        ends[k] = Math.max(role.r.e, role.r.s + role.org.length * 0.45) + 0.5; // room for the label
+      var sorted = lane.roles.slice().sort(function (a, b) { return a.r.s - b.r.s; });
+      sorted.forEach(function (role) {
         var bar = el('a', 'qx-exp-bar' + (role.r.open ? ' is-open' : ''));
         bar.href = '#' + role.item.id;
         bar.style.left = pct(role.r.s);
-        bar.style.setProperty('--l', parseFloat(pct(role.r.s)));
         bar.style.width = 'calc(' + pct(role.r.e) + ' - ' + pct(role.r.s) + ')';
-        bar.style.setProperty('--row', k);
         bar.setAttribute('aria-label', role.h3.textContent.trim() + ', ' + role.r.label);
-        bar.appendChild(el('span', 'qx-exp-label', role.org));
+        var lab = el('span', 'qx-exp-label', role.org);
+        bar.appendChild(lab);
         bar.appendChild(el('span', 'qx-exp-fill'));
         role.bar = bar;
+        role.lab = lab;
         bar.addEventListener('mouseenter', function () { light(role, true); });
         bar.addEventListener('mouseleave', function () { light(role, false); });
         bar.addEventListener('focus', function () { light(role, true); });
@@ -591,17 +649,59 @@
           e.preventDefault();
           role.item.scrollIntoView({ behavior: rm() ? 'auto' : 'smooth', block: 'start' });
           if (history.replaceState) history.replaceState(null, '', '#' + role.item.id);
-          role.item.classList.add('qx-lit');
-          setTimeout(function () { if (d.activeElement !== bar) role.item.classList.remove('qx-lit'); }, 1600);
+          // move focus to the entry, so the next Tab continues from there
+          if (!role.item.hasAttribute('tabindex')) role.item.setAttribute('tabindex', '-1');
+          role.item.focus({ preventScroll: true });
         });
         role.item.addEventListener('mouseenter', function () { light(role, true); });
-        role.item.addEventListener('mouseleave', function () { light(role, false); });
+        role.item.addEventListener('mouseleave', function () { if (d.activeElement !== role.item) light(role, false); });
+        role.item.addEventListener('focus', function () { light(role, true); });
+        role.item.addEventListener('blur', function () { light(role, false); });
         track.appendChild(bar);
       });
-      track.style.setProperty('--rows', Math.max(1, ends.length));
       row.appendChild(track);
       chart.appendChild(row);
+      built.push({ track: track, roles: sorted });
     });
+
+    /* Rows come from bar overlaps only (so the chart height never changes after the
+       first paint); labels are then placed inside their row using measured widths:
+       at the bar start if there is room, otherwise ending at the bar's end. */
+    built.forEach(function (L) {
+      var rows = [];
+      L.roles.forEach(function (role) {
+        var k = 0;
+        while (rows[k] && rows[k][rows[k].length - 1].r.e > role.r.s) k++;
+        (rows[k] = rows[k] || []).push(role);
+        role.bar.style.setProperty('--row', k);
+      });
+      L.rows = rows;
+      L.track.style.setProperty('--rows', Math.max(1, rows.length));
+    });
+    // label placement only moves labels with transforms, so it can wait for layout
+    function layout() {
+      built.forEach(function (L) {
+        var W = L.track.clientWidth;
+        if (!W) return;
+        var showLabels = getComputedStyle(L.roles[0].lab).display !== 'none';
+        var rows = L.rows;
+        if (!showLabels) return;
+        rows.forEach(function (row) {
+          var left = 0;
+          row.forEach(function (role, idx) {
+            var x0 = frac(role.r.s) * W, x1 = frac(role.r.e) * W;
+            var next = row[idx + 1];
+            var right = next ? frac(next.r.s) * W - 12 : W;
+            var lw = role.lab.offsetWidth;
+            var lx = x0;
+            if (x0 + lw > right) lx = Math.max(left, Math.min(x1, right) - lw);
+            role.lab.style.maxWidth = (right - lx < lw) ? Math.max(24, right - lx) + 'px' : '';
+            role.lab.style.transform = lx !== x0 ? 'translateX(' + Math.round(lx - x0) + 'px)' : '';
+            left = Math.max(x1, lx + Math.min(lw, right - lx)) + 12;
+          });
+        });
+      });
+    }
 
     var axis = el('div', 'qx-exp-axis');
     axis.setAttribute('aria-hidden', 'true');
@@ -619,6 +719,18 @@
 
     var anchor = main.querySelector(':scope > .qx-anchor');
     main.insertBefore(fig, anchor ? anchor.nextSibling : main.firstChild);
+    if (d.fonts && d.fonts.ready) d.fonts.ready.then(layout);
+    if ('ResizeObserver' in window) {
+      // the first callback arrives after the first layout: place labels then, and on resize
+      var queued = false, lastW = -1;
+      new ResizeObserver(function (entries) {
+        var w = Math.round(entries[entries.length - 1].contentRect.width);
+        if (queued || w === lastW) return;
+        lastW = w;
+        queued = true;
+        requestAnimationFrame(function () { queued = false; layout(); });
+      }).observe(chart);
+    } else requestAnimationFrame(layout);
 
     // awards: date/amount in mono
     awards.querySelectorAll('li > b').forEach(function (b) {
@@ -653,7 +765,7 @@
   function commands() {
     var list = [];
     PAGES.forEach(function (p) {
-      var cur = p[0] === PAGE;
+      var cur = pageName(p[0]) === PAGE;
       list.push({ group: 'Pages', label: p[1], glyph: '→', hint: cur ? 'current page' : p[0].replace('.html', ''),
         keys: p[1] + ' page', run: function () { if (!cur) location.href = BASE + p[0]; else window.scrollTo({ top: 0, behavior: rm() ? 'auto' : 'smooth' }); } });
     });
@@ -666,7 +778,7 @@
           h.focus({ preventScroll: true });
         } });
     });
-    if (window.qxSensor) {
+    if (window.qxSensor && window.qxSensor.canReplay) {
       list.push({ group: 'On this page', label: 'Replay the photon acquisition', glyph: '■', hint: 'hero',
         keys: 'sensor simulation quanta frames', run: function () {
           d.querySelector('.intro').scrollIntoView({ behavior: rm() ? 'auto' : 'smooth', block: 'start' });
@@ -687,11 +799,19 @@
 
   function score(c, q) {
     if (!q) return 1;
-    var hay = (c.label + ' ' + (c.keys || '') + ' ' + c.group).toLowerCase();
-    var i = c.label.toLowerCase().indexOf(q);
+    var label = c.label.toLowerCase();
+    var hay = (label + ' ' + (c.keys || '') + ' ' + c.group).toLowerCase();
+    var esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (label === q) return 200;
+    var whole = new RegExp('(^|[^a-z0-9])' + esc + '($|[^a-z0-9])').exec(label);
+    if (whole) return 150 - whole.index * 0.1;
+    var i = label.indexOf(q);
     if (i === 0) return 100;
-    if (i > 0) return 80 - i;
-    if (hay.indexOf(q) >= 0) return 50;
+    var wordStart = new RegExp('(^|[^a-z0-9])' + esc).exec(label);
+    if (wordStart) return 90 - wordStart.index * 0.1;
+    if (i > 0) return 70 - i * 0.1;
+    if (new RegExp('(^|[^a-z0-9])' + esc).test(hay)) return 50;
+    if (hay.indexOf(q) >= 0) return 40;
     var j = 0;
     for (var k = 0; k < hay.length && j < q.length; k++) if (hay[k] === q[j]) j++;
     return j === q.length ? 10 : 0;
@@ -817,7 +937,7 @@
       if (e.key === 'Tab') { e.preventDefault(); palInput.focus(); }
     });
     pal.addEventListener('cancel', function (e) { e.preventDefault(); closePalette(false); });
-    pal.addEventListener('click', function (e) { if (e.target === pal) closePalette(false); });
+    lightDismiss(pal, function () { closePalette(false); });
   }
 
   function openPalette(opener) {
@@ -838,7 +958,7 @@
 
   function initKeys() {
     d.addEventListener('keydown', function (e) {
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === 'k' || e.key === 'K')) {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === 'k' || e.key === 'K' || e.code === 'KeyK')) {
         if (citeDlg && citeDlg.open) return;
         e.preventDefault();
         openPalette(d.activeElement && d.activeElement !== d.body ? d.activeElement : null);
@@ -859,8 +979,7 @@
   }
 
   /* -------------------------------------------------------------- boot */
-  function boot() {
-    initTheme();
+  function enhance() {
     initNav();
     initProgress();
     initSectionIds();
@@ -872,13 +991,22 @@
     initKeys();
     initFrameFocus();
   }
-  // Run after the original DOMContentLoaded handler (which forces the dark theme).
-  var booted = false;
-  function bootOnce() { if (!booted) { booted = true; boot(); } }
-  if (d.readyState === 'complete') bootOnce();
+  function settle() {
+    initTheme();
+    // Transitions stay off until the theme has settled (no navy → light flash).
+    requestAnimationFrame(function () { requestAnimationFrame(function () { html.classList.add('qx-ready'); }); });
+  }
+  // A deferred script runs once the document is parsed: build everything now so the
+  // first paint (held by blocking="render") already has the final layout.
+  if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', enhance);
+  else enhance();
+  // The theme is settled after the original DOMContentLoaded handler (which forces dark).
+  var settled = false;
+  function settleOnce() { if (!settled) { settled = true; settle(); } }
+  if (d.readyState === 'complete') settleOnce();
   else {
-    d.addEventListener('DOMContentLoaded', bootOnce);
-    window.addEventListener('load', bootOnce);
+    d.addEventListener('DOMContentLoaded', settleOnce);
+    window.addEventListener('load', settleOnce);
   }
 
   window.qxPalette = { open: openPalette, close: closePalette };
