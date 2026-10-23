@@ -9,11 +9,34 @@
 
   var doc = document;
   var root = doc.documentElement;
+
+  /* When storage is blocked (cookies off, some private modes) merely touching
+     window.localStorage throws, and the original script.js handler would crash on load.
+     This deferred script runs before that handler fires, so swap in an in-memory store. */
+  (function () {
+    try { window.localStorage.getItem('theme'); return; } catch (e) { /* blocked */ }
+    var mem = {};
+    var shim = {
+      getItem: function (k) { return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
+      setItem: function (k, v) { mem[k] = String(v); },
+      removeItem: function (k) { delete mem[k]; },
+      clear: function () { mem = {}; }
+    };
+    try { Object.defineProperty(window, 'localStorage', { configurable: true, get: function () { return shim; } }); } catch (e) { /* leave as is */ }
+  })();
   var THEME_KEY = 'theme';
   var DEFAULT_THEME = 'light';
   var EMAIL = ['hry.wang', 'mail.utoronto.ca'].join(String.fromCharCode(64));
   var EMAIL_SHOWN = 'hry.wang[at]mail.utoronto.ca';
-  var CV_URL = 'assets/CV_Junhao_Wang.pdf';
+  /* Site root, derived from this script's own URL (assets/monograph/monograph.js), so
+     links built here also work from a 404 served at a nested path. */
+  var ROOT = (function () {
+    try {
+      var src = doc.currentScript && doc.currentScript.src;
+      return src ? new URL('../../', src).href : '';
+    } catch (e) { return ''; }
+  })();
+  var CV_URL = ROOT + 'assets/CV_Junhao_Wang.pdf';
   var SCHOLAR = 'https://scholar.google.ca/citations?user=tF65htsAAAAJ&hl=en';
   var LINKEDIN = 'https://www.linkedin.com/in/junhao-wang-4ba488200/';
   var PAGES = [
@@ -34,10 +57,12 @@
     return n;
   }
   function clean(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
-  function currentFile() {
-    var f = location.pathname.split('/').pop();
-    return f || 'index.html';
+  function fileOf(path) {
+    var seg = (path || '').split('#')[0].split('?')[0].split('/').pop();
+    if (!seg) return 'index.html';
+    return seg.indexOf('.') < 0 ? seg + '.html' : seg;
   }
+  function currentFile() { return fileOf(location.pathname); }
   function readTheme() {
     try {
       var v = localStorage.getItem(THEME_KEY);
@@ -63,20 +88,29 @@
   }
 
   /* ---------- theme (fix: original script forced dark on every load) ---------- */
+  /* Replaces the original toggleTheme(): same behaviour, but storage failures (blocked
+     cookies, private modes) can no longer throw and leave the label stale. */
+  function setLabel(t) {
+    try {
+      if (typeof window.updateThemeToggleButton === 'function') window.updateThemeToggleButton(t);
+    } catch (e) { /* label is cosmetic */ }
+  }
   window.toggleTheme = function () {
     var next = themeNow() === 'dark' ? 'light' : 'dark';
     doc.body.setAttribute('data-theme', next);
     writeTheme(next);
-    if (typeof window.updateThemeToggleButton === 'function') window.updateThemeToggleButton(next);
+    setLabel(next);
   };
   function syncThemeChrome() {
     var t = themeNow();
     root.setAttribute('data-theme', t);
     var meta = doc.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', t === 'dark' ? '#0F1218' : '#FFFFFF');
+    var scheme = doc.querySelector('meta[name="color-scheme"]');
+    if (scheme) scheme.setAttribute('content', t);
     var btn = doc.getElementById('theme-toggle');
     var want = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-    if (btn && btn.textContent !== want && typeof window.updateThemeToggleButton === 'function') window.updateThemeToggleButton(t);
+    if (btn && btn.textContent !== want) setLabel(t);
   }
 
   /* ---------- toast ---------- */
@@ -91,20 +125,25 @@
   }
 
   /* ---------- clipboard ---------- */
+  var copying = false;
   function legacyCopy(text) {
     return new Promise(function (resolve, reject) {
       var active = doc.activeElement;
+      var host = (active && active.closest && active.closest('.m-cite, .m-cmdk__panel')) || doc.body;
       var ta = el('textarea');
       ta.value = text;
       ta.setAttribute('readonly', '');
       ta.setAttribute('aria-hidden', 'true');
+      ta.setAttribute('tabindex', '-1');
       ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
-      doc.body.appendChild(ta);
+      copying = true;
+      host.appendChild(ta);
       ta.select();
       var ok = false;
       try { ok = doc.execCommand('copy'); } catch (e) { ok = false; }
       ta.remove();
-      if (active && active.focus) active.focus({ preventScroll: true });
+      if (active && active.focus && active !== doc.body) active.focus({ preventScroll: true });
+      copying = false;
       if (ok) resolve(); else reject(new Error('copy failed'));
     });
   }
@@ -127,7 +166,7 @@
     doc.querySelectorAll('body > header nav').forEach(function (nav) {
       if (!nav.hasAttribute('aria-label')) nav.setAttribute('aria-label', 'Primary');
       nav.querySelectorAll('a').forEach(function (a) {
-        if ((a.getAttribute('href') || '') === here) a.setAttribute('aria-current', 'page');
+        if (fileOf(a.getAttribute('href') || '') === here) a.setAttribute('aria-current', 'page');
       });
       var cur = nav.querySelector('[aria-current="page"]');
       if (cur && nav.scrollWidth > nav.clientWidth) {
@@ -261,7 +300,20 @@
 
   /* ---------- BibTeX (built only from on-page title, authors, venue, year, link) ---------- */
   var STOP = { the: 1, and: 1, for: 1, with: 1, using: 1, from: 1, based: 1, via: 1, on: 1, of: 1 };
-  function bibEscape(s) { return s.replace(/([&%$#_])/g, '\\$1'); }
+  var ACCENT = { '\u0300': '`', '\u0301': "'", '\u0302': '^', '\u0303': '~', '\u0304': '=', '\u0306': 'u', '\u0307': '.',
+    '\u0308': '"', '\u030A': 'r', '\u030B': 'H', '\u030C': 'v', '\u0327': 'c', '\u0328': 'k' };
+  var LETTER = { 'ø': '{\\o}', 'Ø': '{\\O}', 'ß': '{\\ss}', 'æ': '{\\ae}', 'Æ': '{\\AE}', 'œ': '{\\oe}', 'Œ': '{\\OE}', 'å': '{\\aa}', 'Å': '{\\AA}', 'ł': '{\\l}', 'Ł': '{\\L}', 'ı': '{\\i}' };
+  /* TeX-safe text: escape specials, then turn accented letters into {\"o}-style macros. */
+  function bibEscape(s) {
+    s = s.replace(/([&%$#_])/g, '\\$1');
+    s = s.replace(/[øØßæÆœŒåÅłŁı]/g, function (c) { return LETTER[c]; });
+    return s.normalize('NFD').replace(/([A-Za-z])([\u0300-\u036f])/g, function (m, base, mark) {
+      var cmd = ACCENT[mark];
+      if (!cmd) return base;
+      if (base === 'i' && /^[`'^"]$/.test(cmd)) base = '\\i';
+      return /^[a-zA-Z]$/.test(cmd) ? '{\\' + cmd + ' ' + base + '}' : '{\\' + cmd + base + '}';
+    }).normalize('NFC');
+  }
   function buildBib(h3, meta) {
     var title = clean(h3.textContent);
     var authorText = '';
@@ -285,14 +337,14 @@
     var word = (title.split(/[^A-Za-z0-9]+/).filter(function (w) {
       return /^[A-Za-z]/.test(w) && w.length > 2 && !STOP[w.toLowerCase()];
     })[0] || 'paper').toLowerCase();
-    var fields = [['title', title], ['author', authors.join(' and ')]];
-    fields.push([preprint ? 'howpublished' : 'booktitle', venueName]);
+    var fields = [['title', '{' + bibEscape(title) + '}'], ['author', bibEscape(authors.join(' and '))]];
+    fields.push([preprint ? 'howpublished' : 'booktitle', bibEscape(venueName)]);
     if (year) fields.push(['year', year]);
     if (arxiv) { fields.push(['eprint', arxiv[1]]); fields.push(['archivePrefix', 'arXiv']); }
     if (url) fields.push(['url', url]);
     var pad = fields.reduce(function (m, f) { return Math.max(m, f[0].length); }, 0);
     var body = fields.map(function (f) {
-      return '  ' + f[0] + new Array(pad - f[0].length + 2).join(' ') + '= {' + bibEscape(f[1]) + '}';
+      return '  ' + f[0] + new Array(pad - f[0].length + 2).join(' ') + '= {' + f[1] + '}';
     }).join(',\n');
     return '@' + (preprint ? 'misc' : 'inproceedings') + '{' + last + year + word + ',\n' + body + '\n}';
   }
@@ -369,6 +421,7 @@
         if (e.key === 'Escape') { e.stopPropagation(); closeCite(true); }
       });
       pop.addEventListener('focusout', function (e) {
+        if (copying) return;
         if (openCite && openCite.pop === pop && e.relatedTarget && !pop.contains(e.relatedTarget) && e.relatedTarget !== btn) closeCite(false);
       });
     });
@@ -416,10 +469,10 @@
       var here = currentFile();
       var out = [];
       PAGES.forEach(function (p) {
-        out.push({ group: 'Pages', label: p[1], hint: p[0] === here ? 'Current page' : 'Page', kw: p[2], run: function () { location.href = p[0]; } });
+        out.push({ group: 'Pages', label: p[1], hint: p[0] === here ? 'Current page' : 'Page', kw: p[2], nav: true, run: function () { location.href = ROOT + p[0]; } });
       });
       doc.querySelectorAll('main h2').forEach(function (h) {
-        out.push({ group: 'On this page', label: clean(h.textContent), hint: 'Jump to section', kw: '', run: function () {
+        out.push({ group: 'On this page', label: clean(h.textContent), hint: 'Jump to section', kw: '', nav: true, run: function () {
           if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
           h.scrollIntoView({ behavior: smooth(), block: 'start' });
           h.focus({ preventScroll: true });
@@ -497,17 +550,20 @@
       if (scroll) shown[active].node.scrollIntoView({ block: 'nearest' });
     }
 
+    /* Navigating commands (pages, sections) move focus themselves; every other action
+       hands focus back to whatever opened the palette. */
     function runAt(i) {
       var r = shown[i];
       if (!r) return;
-      close(false);
+      close(!r.it.nav);
       r.it.run();
     }
 
-    function open() {
+    function open(trigger) {
       if (!wrap.hidden) return;
+      var from = trigger || (openCite ? openCite.btn : doc.activeElement);
+      opener = from && from !== doc.body && from !== root ? from : null;
       closeCite(false);
-      opener = doc.activeElement;
       items = commands();
       input.value = '';
       wrap.hidden = false;
@@ -522,11 +578,16 @@
 
     function close(restore) {
       if (wrap.hidden) return;
+      /* Never leave focus parked on the hidden input (WebKit/Gecko keep it there). */
+      if (wrap.contains(doc.activeElement) && doc.activeElement.blur) doc.activeElement.blur();
       wrap.hidden = true;
       root.classList.remove('m-lock');
       inerted.forEach(function (c) { c.inert = false; });
       inerted = [];
-      if (restore !== false && opener && opener.focus && doc.contains(opener)) opener.focus();
+      input.removeAttribute('aria-activedescendant');
+      if (restore !== false && opener && opener.focus && doc.contains(opener) && opener.getClientRects().length) {
+        opener.focus({ preventScroll: true });
+      }
     }
 
     input.addEventListener('input', render);
@@ -547,6 +608,7 @@
       if (!wrap.hidden && e.relatedTarget && !panel.contains(e.relatedTarget)) input.focus();
     });
 
+    window.addEventListener('pagehide', function () { close(false); });
     doc.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
@@ -554,7 +616,8 @@
       }
     });
     doc.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('[data-palette-open]')) { e.preventDefault(); open(); }
+      var t = e.target.closest && e.target.closest('[data-palette-open]');
+      if (t) { e.preventDefault(); open(t); }
     });
   }
 
@@ -623,7 +686,49 @@
       });
     }
 
+    /* Back/forward cache: the theme may have been changed on another page meanwhile. */
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      var t = readTheme() || DEFAULT_THEME;
+      if (themeNow() !== t) doc.body.setAttribute('data-theme', t);
+      syncThemeChrome();
+      setLabel(t);
+    });
+
+    setupNavFade();
+    setupCvFrame();
     requestAnimationFrame(function () { root.classList.add('m-ready'); });
+  }
+
+  /* Pairs with the CSS above: open the CV frame once the PDF viewer has had time to load. */
+  function setupCvFrame() {
+    var frame = doc.querySelector('.m-cv-frame');
+    var pdf = frame && frame.querySelector('.cv-embed');
+    if (!pdf) return;
+    var open = function () { frame.classList.add('is-ready'); };
+    if (reduceMotion.matches) { open(); return; }
+    var soon = function () { setTimeout(open, 600); };
+    pdf.addEventListener('load', soon);
+    if (doc.readyState === 'complete') soon(); else window.addEventListener('load', soon);
+    setTimeout(open, 2000);
+  }
+
+  /* Compact top bar: fade whichever edge of the nav strip has more links beyond it. */
+  function setupNavFade() {
+    var nav = doc.querySelector('body > header nav');
+    if (!nav) return;
+    var raf = 0;
+    function update() {
+      raf = 0;
+      var max = nav.scrollWidth - nav.clientWidth;
+      nav.classList.toggle('is-clip-start', max > 1 && nav.scrollLeft > 1);
+      nav.classList.toggle('is-clip-end', max > 1 && nav.scrollLeft < max - 1);
+    }
+    function queue() { if (!raf) raf = requestAnimationFrame(update); }
+    nav.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue);
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(queue);
+    update();
   }
 
   if (doc.readyState === 'complete') init();

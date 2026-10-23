@@ -36,7 +36,7 @@
   ];
   var DEGREE = { start: new Date(2021, 8, 1), end: new Date(2026, 5, 0), text: 'BASc · Sep 2021 – May 2026' };
   var NOW = new Date();
-  var FONT = '"Public Sans", "Helvetica Neue", Arial, sans-serif';
+  var FONT = '"Public Sans", "Public Sans Fallback", Arial, sans-serif';
 
   var entries = [];
   var D0, D1;
@@ -80,16 +80,34 @@
   }
 
   /* ---------- data ---------- */
+  /* Accepts "Aug 2025 – Present", "Sept 2024 - Dec 2024", "June 2023 — July 2023", etc. */
+  function month(name) {
+    var k = name.slice(0, 3);
+    k = k.charAt(0).toUpperCase() + k.slice(1).toLowerCase();
+    return k in MON ? MON[k] : -1;
+  }
   function parseDates(s) {
-    var m = /([A-Z][a-z]{2})\s+(\d{4})\s*[–-]\s*(?:(Present)|([A-Z][a-z]{2})\s+(\d{4}))/.exec(s);
-    if (!m || !(m[1] in MON)) return null;
-    var start = new Date(+m[2], MON[m[1]], 1);
-    var end = m[3] ? null : new Date(+m[5], MON[m[4]] + 1, 0, 23, 59);
+    var m = /\b([A-Za-z]{3,9})\.?\s+(\d{4})\s*[–—-]\s*(?:(Present|Now|Current|Ongoing)|([A-Za-z]{3,9})\.?\s+(\d{4}))/i.exec(s);
+    if (!m) return null;
+    var m0 = month(m[1]);
+    var m1 = m[3] ? 0 : month(m[4]);
+    if (m0 < 0 || m1 < 0) return null;
+    var start = new Date(+m[2], m0, 1);
+    var end = m[3] ? null : new Date(+m[5], m1 + 1, 0, 23, 59);
+    if (end && end < start) return null;
     return { start: start, end: end, text: m[0] };
   }
+  function slug(s) {
+    return clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'role';
+  }
 
+  function warn(msg, node) {
+    if (window.console && console.warn) console.warn('[Career at a glance] ' + msg, node || '');
+  }
   function parse(source, live) {
     var out = [];
+    var used = {};
     source.querySelectorAll('main > section').forEach(function (sec) {
       var h2 = sec.querySelector(':scope > h2');
       if (!h2) return;
@@ -99,16 +117,28 @@
       sec.querySelectorAll(':scope > .item').forEach(function (item) {
         var h3 = item.querySelector('h3');
         var meta = item.querySelector('.meta');
-        var anchor = item.previousElementSibling;
-        if (!h3 || !meta || !anchor || !anchor.classList.contains('m-anchor')) return;
+        if (!h3 || !meta) { warn('entry without a heading or date line was left out', item); return; }
         var d = parseDates(meta.textContent);
-        if (!d) return;
+        if (!d) { warn('could not read the dates "' + clean(meta.textContent).split(' · ')[0] + '" for "' + clean(h3.textContent) + '"; it is not on the chart', item); return; }
         var parts = clean(h3.textContent).split(' — ');
         var metaParts = clean(meta.textContent).split(' · ');
-        var names = NAMES[anchor.id] || {};
+        /* Entries added later without an anchor get a stable id derived from their heading;
+           both pages derive the same id, so links from the home page still land. */
+        var anchor = item.previousElementSibling;
+        var id = anchor && anchor.classList.contains('m-anchor') && anchor.id ? anchor.id : 'exp-' + slug(parts[1] || parts[0]);
+        while (used[id]) id += '-2';
+        used[id] = true;
+        if (live && !(anchor && anchor.id === id)) {
+          var a = source.createElement('div');
+          a.className = 'm-anchor';
+          a.id = id;
+          item.parentNode.insertBefore(a, item);
+          anchor = a;
+        }
+        var names = NAMES[id] || {};
         out.push({
           kind: 'role',
-          id: anchor.id,
+          id: id,
           lane: lane.key,
           laneName: lane.name,
           role: parts[0],
@@ -121,7 +151,7 @@
           label: names.label || parts[1] || parts[0],
           tag: names.tag || names.label || parts[1] || parts[0],
           item: live ? item : null,
-          href: (FULL ? '' : 'experience.html') + '#' + anchor.id
+          href: (FULL ? '' : 'experience.html') + '#' + id
         });
       });
     });
@@ -144,9 +174,15 @@
     var W = Math.floor(chart.clientWidth);
     if (W < 200) return;
     lastW = W;
-    var rows = FULL && W >= 600;
+    var widest = 0;
+    entries.forEach(function (e) {
+      widest = Math.max(widest, textW(e.label, 13, 500), textW(e.role, 11.5, 400));
+    });
+    var rowsLabelW = Math.ceil(widest) + 24;
+    var rows = FULL && W >= 600 && W - rowsLabelW >= 380;
     var narrow = W < 520;
-    var labelW = rows ? (W >= 760 ? 238 : 200) : (narrow ? 0 : 92);
+    var laneW = Math.ceil(Math.max(textW('LEADERSHIP', 10, 600, 0.13), textW('PUBLICATIONS', 10, 600, 0.13))) + 16;
+    var labelW = rows ? rowsLabelW : (narrow ? 0 : laneW);
     var x0 = labelW;
     var x1 = W - (rows ? 8 : 6);
     var t0 = D0.getTime();
@@ -319,6 +355,7 @@
       '</svg>';
 
     var armed = !drawn && !reduce.matches;
+    var hadFocus = chart.contains(doc.activeElement);
     chart.classList.toggle('is-armed', armed);
     chart.innerHTML = svg;
     chart.appendChild(tip);
@@ -327,6 +364,7 @@
     items.forEach(function (rec, i) { rec.node = nodes[i]; });
     if (active >= items.length) active = 0;
     setRoving();
+    if (hadFocus && items[active]) items[active].node.focus({ preventScroll: true });
   }
 
   function ariaFor(e) {
@@ -504,27 +542,39 @@
     }
   }
 
+  /* Build straight away (fallback faces are metric-matched), then re-measure labels once
+     the web fonts have arrived. The section's footprint is reserved in CSS meanwhile. */
   function start() {
-    var fontsReady = doc.fonts && doc.fonts.load
-      ? Promise.race([
-          Promise.all([doc.fonts.load('500 11.5px "Public Sans"'), doc.fonts.load('600 11.5px "Public Sans"')]),
-          new Promise(function (r) { setTimeout(r, 1500); })
-        ]).catch(function () {})
-      : Promise.resolve();
+    var refit = function () {
+      if (!chart) return;
+      /* Never cut a running draw-in short; settle once it has finished. */
+      if (chart.classList.contains('is-anim')) { setTimeout(refit, 400); return; }
+      if (chart.contains(doc.activeElement)) return;
+      lastW = 0;
+      hide();
+      render();
+    };
+    var whenFonts = function () {
+      if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { requestAnimationFrame(refit); });
+    };
     if (FULL) {
       entries = parse(doc, true);
-      fontsReady.then(build);
+      if (!entries.length) { mount.classList.add('is-off'); return; }
+      build();
+      whenFonts();
     } else {
-      Promise.all([
-        fetch('experience.html', { credentials: 'same-origin' }).then(function (r) {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.text();
-        }),
-        fontsReady
-      ]).then(function (res) {
-        entries = parse(new DOMParser().parseFromString(res[0], 'text/html'), false);
+      fetch('experience.html', { credentials: 'same-origin' }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      }).then(function (html) {
+        entries = parse(new DOMParser().parseFromString(html, 'text/html'), false);
+        if (!entries.length) throw new Error('no entries');
         build();
-      }).catch(function () { /* no chart without the source page */ });
+        whenFonts();
+      }).catch(function () {
+        /* No chart without its source page: release the reserved space. */
+        mount.classList.add('is-off');
+      });
     }
   }
 
