@@ -6,11 +6,12 @@
   <title>Page not found | Junhao Wang</title>
   <meta name="description" content="This page could not be found on Junhao Wang's site.">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#F4F6FA">
+  <meta name="theme-color" content="#0E1015">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;family=Orbitron:wght@400;500;600&amp;family=Rajdhani:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap">
   <link rel="stylesheet" href="/assets/splat/splat.css">
   <script defer src="/assets/script.js"></script>
@@ -18,7 +19,7 @@
   <script defer src="/assets/splat/gaussians.js"></script>
 </head>
 <body data-theme="dark" data-style="default" data-font="default">
-  <script>(function(){var d=document,h=d.documentElement,t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='dark'&&t!=='light')t='light';d.body.setAttribute('data-theme',t);h.setAttribute('data-theme',t);h.classList.add('js');})();</script>
+  <script>(function(){var d=document,h=d.documentElement,t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='dark'&&t!=='light')t='light';d.body.setAttribute('data-theme',t);h.setAttribute('data-theme',t);h.classList.add('js');var m=d.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0E1015':'#F4F6FA');})();</script>
   <a class="skip-link" href="#content">Skip to content</a>
   <div class="scroll-progress" aria-hidden="true"></div>
   <header class="site-header">
@@ -53,7 +54,7 @@
           <div class="splat-stage">
             <canvas class="splat-canvas" role="img" aria-label="Illustration: a loose cloud of soft Gaussian splats that never quite settles into a shape."></canvas>
           </div>
-          <figcaption>Illustration: the same Gaussians as the home page, unable to settle on a shape.</figcaption>
+          <figcaption><span class="fig-no">Fig. 404</span> Illustration: the same Gaussians as the home page, unable to settle on a shape.</figcaption>
         </figure>
       </section>
     </main>

@@ -24,20 +24,51 @@
       return t === 'dark' || t === 'light' ? t : null;
     } catch (e) { return null; }
   }
+  function currentTheme() { return doc.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+
+  // With storage blocked (cookies off) even reading window.localStorage throws, and the original
+  // script reads it unguarded on DOMContentLoaded. Give it an in-memory stand-in first.
+  (function guardStorage() {
+    try { window.localStorage.getItem(THEME_KEY); return; } catch (e) { /* blocked */ }
+    var mem = {};
+    var shim = {
+      getItem: function (k) { return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
+      setItem: function (k, v) { mem[k] = String(v); },
+      removeItem: function (k) { delete mem[k]; },
+      clear: function () { mem = {}; }
+    };
+    try { Object.defineProperty(window, 'localStorage', { configurable: true, value: shim }); } catch (e) { /* leave it */ }
+  })();
 
   /* ---------------------------------------------------------------- theme */
   function syncThemeChrome(t) {
     html.setAttribute('data-theme', t);
     var meta = doc.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', t === 'dark' ? '#0E1015' : '#F4F6FA');
+    if (typeof window.updateThemeToggleButton === 'function') window.updateThemeToggleButton(t);
     var btn = doc.getElementById('theme-toggle');
     if (btn) btn.title = btn.textContent;
   }
   function applyTheme(t) {
     doc.body.setAttribute('data-theme', t);
-    if (typeof window.updateThemeToggleButton === 'function') window.updateThemeToggleButton(t);
     syncThemeChrome(t);
   }
+  // The original toggleTheme writes storage without a guard; if that throws (quota, blocked
+  // storage) the attribute has flipped but the label has not. Keep the UI consistent.
+  (function guardToggle() {
+    var orig = window.toggleTheme;
+    if (typeof orig !== 'function' || orig.splatGuarded) return;
+    var safe = function () {
+      try { return orig.apply(this, arguments); }
+      catch (e) { syncThemeChrome(currentTheme()); return undefined; }
+    };
+    safe.splatGuarded = true;
+    window.toggleTheme = safe;
+  })();
+  // Back/forward cache restores the old DOM: re-read the stored choice
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) applyTheme(storedTheme() || DEFAULT_THEME);
+  });
 
   /* ---------------------------------------------------------------- toast */
   var toastEl = null, toastTimer = 0;
@@ -45,6 +76,10 @@
     if (!toastEl) return;
     // a modal dialog sits in the top layer, so the toast has to live inside it to be seen
     var host = doc.querySelector('dialog[open]') || doc.body;
+    if (host !== doc.body && host.getAnimations) {
+      // a running transform animation would make the dialog the toast's containing block
+      host.getAnimations().forEach(function (a) { try { a.finish(); } catch (e) { /* ignore */ } });
+    }
     if (toastEl.parentNode !== host) host.appendChild(toastEl);
     toastEl.textContent = msg;
     // force reflow so the transition replays on rapid repeats
@@ -60,19 +95,32 @@
   function copyText(text) {
     function legacy() {
       return new Promise(function (resolve, reject) {
+        // behind a modal the rest of the page is inert, so the helper must live in the dialog
+        var host = doc.querySelector('dialog[open]') || doc.body;
+        var prev = doc.activeElement;
         var ta = el('textarea');
         ta.value = text;
         ta.setAttribute('readonly', '');
-        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
-        doc.body.appendChild(ta);
-        ta.select();
+        ta.setAttribute('aria-hidden', 'true');
+        ta.tabIndex = -1;
+        ta.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;padding:0;border:0;margin:0;opacity:0;pointer-events:none';
+        host.appendChild(ta);
         var ok = false;
-        try { ok = doc.execCommand('copy'); } catch (e) { ok = false; }
+        try {
+          ta.focus({ preventScroll: true });
+          ta.select();
+          ta.setSelectionRange(0, text.length);
+          ok = doc.activeElement === ta && ta.selectionStart === 0 && ta.selectionEnd === text.length &&
+            doc.execCommand('copy') === true;
+        } catch (e) { ok = false; }
         ta.remove();
+        if (prev && prev !== doc.body && doc.contains(prev) && prev.focus) {
+          try { prev.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+        }
         if (ok) { resolve(); } else { reject(new Error('copy failed')); }
       });
     }
-    if (navigator.clipboard && window.isSecureContext) {
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
       return navigator.clipboard.writeText(text).catch(legacy);
     }
     return legacy();
@@ -101,10 +149,15 @@
     var top = el('button', 'to-top');
     top.type = 'button';
     top.appendChild(el('span', 'sr-only', 'Back to top'));
-    top.addEventListener('click', function () {
+    top.addEventListener('click', function (e) {
       window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+      if (e.detail === 0) {           // keyboard activation: the button is about to hide, so move focus
+        var target = doc.getElementById('content');
+        if (target) { target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
+      }
     });
     doc.body.appendChild(top);
+    var footer = doc.querySelector('body > footer');
     var ticking = false;
     function update() {
       ticking = false;
@@ -113,6 +166,10 @@
       if (bar) bar.style.setProperty('--progress', Math.min(1, y / max).toFixed(4));
       html.classList.toggle('is-scrolled', y > 8);
       top.classList.toggle('is-on', y > window.innerHeight * 0.9);
+      if (footer) {                   // never sit on top of the footer links
+        var lift = Math.max(0, window.innerHeight - footer.getBoundingClientRect().top + 12);
+        top.style.setProperty('--lift', Math.round(lift) + 'px');
+      }
       spy();
     }
     window.addEventListener('scroll', function () {
@@ -143,8 +200,6 @@
       var shown = contact.textContent.trim();
       contact.appendChild(copyButton('Copy email address', function () { return shown.replace('[at]', '@'); }, 'Email address copied'));
     }
-    var cap = doc.querySelector('.hero-visual figcaption');
-    if (cap && !cap.querySelector('.fig-no')) cap.insertBefore(el('span', 'fig-no', 'Fig. 1'), cap.firstChild);
 
     // News: wrap the [YYYY/MM] stamp so it can be set in mono (textContent unchanged)
     doc.querySelectorAll('.emoji-list li').forEach(function (li) {
@@ -181,14 +236,16 @@
     var last = parts.pop();
     return last + ', ' + parts.join(' ');
   }
-  function protect(title) {
-    return title.split(' ').map(function (w) {
-      var m = /^(.*?)([:,.;]?)$/.exec(w), core = m[1], tail = m[2];
-      var needs = /[A-Z]/.test(core.slice(1)) || (/\d/.test(core) && /[A-Za-z]/.test(core));
-      return (needs ? '{' + core + '}' : core) + tail;
-    }).join(' ');
+  var ACCENT = {
+    'ä': '{\\"a}', 'ë': '{\\"e}', 'ï': '{\\"i}', 'ö': '{\\"o}', 'ü': '{\\"u}', 'Ä': '{\\"A}', 'Ö': '{\\"O}', 'Ü': '{\\"U}',
+    'á': "{\\'a}", 'é': "{\\'e}", 'í': "{\\'i}", 'ó': "{\\'o}", 'ú': "{\\'u}", 'É': "{\\'E}",
+    'à': '{\\`a}', 'è': '{\\`e}', 'ò': '{\\`o}', 'â': '{\\^a}', 'ê': '{\\^e}', 'ô': '{\\^o}',
+    'ç': '{\\c{c}}', 'ñ': '{\\~n}', 'å': '{\\aa}', 'ø': '{\\o}', 'ß': '{\\ss}'
+  };
+  // LaTeX-safe: escape specials and spell accented letters the BibTeX way
+  function esc(s) {
+    return s.replace(/([&%$#_])/g, '\\$1').replace(/[äëïöüÄÖÜáéíóúÉàèòâêôçñåøß]/g, function (c) { return ACCENT[c]; });
   }
-  function esc(s) { return s.replace(/([&%$#_])/g, '\\$1'); }
   function ascii(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
   function linkId(href) {
@@ -208,7 +265,7 @@
     var venue = d.venue.replace(/\s*\b(19|20)\d{2}\b\s*/, ' ').replace(/\s+/g, ' ').trim();
     var preprint = /arxiv/i.test(venue) && !/(proceedings|symposium|conference)/i.test(venue);
     var fields = [
-      ['title', '{' + esc(protect(d.title)) + '}'],
+      ['title', '{{' + esc(d.title) + '}}'],
       ['author', '{' + esc(d.authors.map(bibName).join(' and ')) + '}']
     ];
     fields.push(preprint ? ['howpublished', '{' + esc(venue) + '}'] : ['booktitle', '{' + esc(venue) + '}']);
@@ -253,10 +310,17 @@
     });
     foot.appendChild(copy);
     dialog.appendChild(head); dialog.appendChild(paper); dialog.appendChild(pre); dialog.appendChild(foot);
-    dialog.addEventListener('click', function (e) {
-      if (e.target !== dialog) return;
+    // close on a backdrop click, but not when a text selection drag merely ends out there
+    var pressedBackdrop = false;
+    function outside(e) {
       var r = dialog.getBoundingClientRect();
-      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    }
+    dialog.addEventListener('pointerdown', function (e) { pressedBackdrop = e.target === dialog && outside(e); });
+    dialog.addEventListener('click', function (e) {
+      var close = pressedBackdrop && e.target === dialog && outside(e);
+      pressedBackdrop = false;
+      if (close) dialog.close();
     });
     // keep Tab cycling inside the modal (browsers otherwise hand focus to their own UI)
     dialog.addEventListener('keydown', function (e) {
@@ -335,29 +399,18 @@
       };
       if (link && link.getAttribute('target') === '_blank') link.setAttribute('rel', 'noopener');
 
-      var actions = el('span', 'pub-actions');
-      if (supportsDialog) {
-        var cite = el('button', 'cite-btn', 'Cite');
-        cite.type = 'button';
-        cite.setAttribute('aria-haspopup', 'dialog');
-        cite.setAttribute('aria-label', 'Cite: ' + data.title);
-        cite.addEventListener('click', function () { openCite(data, cite); });
-        actions.appendChild(doc.createTextNode(' '));
-        actions.appendChild(cite);
+      var actions = item.querySelector('.pub-actions');
+      var cite = actions && actions.querySelector('.cite-btn');
+      if (actions && actions.getAttribute('data-venue')) {
+        // the home page lists short venues; cite with the full one from publications.html
+        data.venue = actions.getAttribute('data-venue');
+        var vy = /\b(19|20)\d{2}\b/.exec(data.venue);
+        if (vy) data.year = vy[0];
       }
-      if (data.ids && item.closest('.page--publications')) {
-        actions.appendChild(el('span', 'pub-id', data.ids.label));
-      }
-      if (actions.childNodes.length) {
-        meta.parentNode.insertBefore(actions, meta.nextSibling);
-        item.classList.add('has-cite');
-      }
-      if (data.year && item.closest('.page--publications')) {
-        var y = el('span', 'pub-year', data.year);
-        y.setAttribute('aria-hidden', 'true');
-        item.insertBefore(y, item.firstChild);
-        item.classList.add('has-year');
-      }
+      if (!cite) return;
+      if (!supportsDialog) { cite.hidden = true; return; }
+      cite.setAttribute('aria-label', 'Cite: ' + data.title);
+      cite.addEventListener('click', function () { openCite(data, cite); });
     });
   }
 
@@ -372,26 +425,15 @@
       if (i === active) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
     });
   }
-  function slug(s) { return s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
-
   function initExperience() {
     var main = doc.querySelector('.page--experience main');
     if (!main) return;
+    main.querySelectorAll('.toc a[href^="#"]').forEach(function (a) {
+      var t = doc.getElementById(a.getAttribute('href').slice(1));
+      if (t) { spyLinks.push(a); spyTargets.push(t.closest('section') || t); }
+    });
     var sections = Array.prototype.filter.call(main.children, function (c) { return c.tagName === 'SECTION'; });
-    var toc = el('nav', 'toc');
-    toc.setAttribute('aria-label', 'On this page');
-    toc.appendChild(el('p', 'toc-title', 'On this page'));
-    var ol = el('ol');
     sections.forEach(function (sec) {
-      var h2 = sec.querySelector('h2');
-      if (!h2) return;
-      if (!sec.id) sec.id = slug(h2.textContent);
-      var li = el('li');
-      var a = el('a', null, h2.textContent.trim());
-      a.href = '#' + sec.id;
-      li.appendChild(a); ol.appendChild(li);
-      spyLinks.push(a); spyTargets.push(sec);
-
       if (sec.classList.contains('awards')) {
         sec.querySelectorAll('li').forEach(function (li2) {
           var b = li2.querySelector('b');
@@ -416,17 +458,10 @@
         });
         return;
       }
-      sec.classList.add('timeline');
       Array.prototype.forEach.call(sec.children, function (item) {
         if (!item.classList.contains('item')) return;
         var meta = item.querySelector('.meta');
         if (!meta) return;
-        var ym = /\b(19|20)\d{2}\b/.exec(meta.textContent);
-        if (ym) {
-          var y = el('span', 'tl-year', ym[0]);
-          y.setAttribute('aria-hidden', 'true');
-          item.insertBefore(y, item.firstChild);
-        }
         var t = meta.firstChild;
         if (t && t.nodeType === 3) {
           var cut = t.data.indexOf(' · ');
@@ -439,9 +474,6 @@
         }
       });
     });
-    toc.appendChild(ol);
-    main.insertBefore(toc, main.firstChild);
-    main.classList.add('has-toc');
     spy();
   }
 

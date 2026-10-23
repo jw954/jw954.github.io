@@ -20,6 +20,9 @@
   var radios = Array.prototype.slice.call(root.querySelectorAll('[data-channel]'));
   var mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   var SCATTER = root.getAttribute('data-mode') === 'scatter'; // 404: never settles
+  var mqHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+  var hint = root.querySelector('.splat-hint');
+  var DEBUG = /splat-debug/.test(location.hash);
 
   var TAU = Math.PI * 2;
   var NU = 128, NV = 15, NS = NU * NV;     // 1,920 surface Gaussians
@@ -28,7 +31,7 @@
   var ZS = 1.6 / 3;                         // knot depth
   var R0 = 0.205;                           // rest tube radius
   var CAM_D = 4.6;                          // camera distance
-  var SPRITE = 64;                          // sprite cell (px) in the atlas
+  var SPRITE = 32;                          // sprite cell (px) in the atlas (smooth, so 32px upsamples cleanly)
   var CHANNELS = ['rgb', 'depth', 'semantic'];
   var CH_LABEL = { rgb: 'RGB', depth: 'Depth', semantic: 'Semantic' };
 
@@ -94,7 +97,7 @@
     return [f.k[0] + R0 * (cv * f.n[0] + sv * f.b[0]), f.k[1] + R0 * (cv * f.n[1] + sv * f.b[1]), f.k[2] + R0 * (cv * f.n[2] + sv * f.b[2])];
   }
 
-  (function build() {
+  function build() {
     var i = 0;
     var tmp = { k: [0, 0, 0], t: [0, 0, 0], n: [0, 0, 0], b: [0, 0, 0], dl: 0 };
     for (var iu = 0; iu < NU; iu++) {
@@ -165,7 +168,7 @@
       START[oc + 1] = tmp.k[1] * 0.3 + Math.sin(ac) * qc * rc;
       START[oc + 2] = tmp.k[2] * 0.3 + zc * rc;
     }
-  })();
+  }
 
   /* ---------- sprite atlas: one Gaussian footprint, tinted per colour ---------- */
   var atlas = document.createElement('canvas');
@@ -174,29 +177,31 @@
   atlas.width = ATLAS_COLS * SPRITE;
   atlas.height = (RGB_ROWS + 2) * SPRITE;
   var actx = atlas.getContext('2d');
-  var MASK = (function () {
-    var m = new Float32Array(SPRITE * SPRITE), c = SPRITE / 2, rad = SPRITE / 2 - 1, e = Math.exp(-3.125);
+  var MASK = null, atlasTheme = null;
+  function buildMask() {
+    var m = new Uint8Array(SPRITE * SPRITE), c = SPRITE / 2, rad = SPRITE / 2 - 0.5, e = Math.exp(-3.125);
     for (var y = 0; y < SPRITE; y++) for (var x = 0; x < SPRITE; x++) {
       var dx = (x + 0.5 - c) / rad, dy = (y + 0.5 - c) / rad, r2 = dx * dx + dy * dy;
-      m[y * SPRITE + x] = r2 >= 1 ? 0 : (Math.exp(-3.125 * r2) - e) / (1 - e);
+      m[y * SPRITE + x] = r2 >= 1 ? 0 : Math.round(255 * (Math.exp(-3.125 * r2) - e) / (1 - e));
     }
     return m;
-  })();
+  }
 
   function theme() { return document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
 
   function buildAtlas() {
-    var dark = theme() === 'dark';
+    var th = theme();
+    if (th === atlasTheme) return false;   // only rebuild when the theme actually changed
+    atlasTheme = th;
+    if (!MASK) MASK = buildMask();
+    var dark = th === 'dark';
     var img = actx.createImageData(atlas.width, atlas.height);
-    var d = img.data;
+    var px = new Uint32Array(img.data.buffer), AW = atlas.width;   // little-endian RGBA
     function cell(col, row, rgb) {
-      var x0 = col * SPRITE, y0 = row * SPRITE;
+      var x0 = col * SPRITE, y0 = row * SPRITE, bits = rgb[0] | (rgb[1] << 8) | (rgb[2] << 16);
       for (var y = 0; y < SPRITE; y++) {
-        var p = ((y0 + y) * atlas.width + x0) * 4, mrow = y * SPRITE;
-        for (var x = 0; x < SPRITE; x++, p += 4) {
-          d[p] = rgb[0]; d[p + 1] = rgb[1]; d[p + 2] = rgb[2];
-          d[p + 3] = Math.round(MASK[mrow + x] * 255);
-        }
+        var p = (y0 + y) * AW + x0, mrow = y * SPRITE;
+        for (var x = 0; x < SPRITE; x++) px[p + x] = (MASK[mrow + x] << 24) | bits;
       }
     }
     // RGB: 32 positions around the colour ring x 8 shading levels
@@ -218,6 +223,7 @@
     // Semantic: four flat segment colours
     for (var si = 0; si < SEG.length; si++) cell(si, SEM_ROW, hex(SEG[si]));
     actx.putImageData(img, 0, 0);
+    return true;
   }
 
   /* ---------- per-frame buffers ---------- */
@@ -235,7 +241,7 @@
   var ptr = { x: 0, y: 0, tx: 0, ty: 0, s: 0, v: 0, target: 0, active: false };
   var lastTxt = '';
   var stats = { frames: 0, avgMs: 0, maxMs: 0, drawn: 0, press: 0 };
-  window.__splatStats = stats;
+  if (DEBUG) window.__splatStats = stats;   // opt-in via #splat-debug only
 
   function smooth(e0, e1, x) { x = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return x * x * (3 - 2 * x); }
 
@@ -398,17 +404,43 @@
     var txt = (Math.floor(tn * 100) / 100).toFixed(2);
     if (txt !== lastTxt && outT) { outT.textContent = txt; lastTxt = txt; }
     var dt = performance.now() - t0;
+    lastCost = dt;
     stats.frames++; stats.drawn = m;
     stats.avgMs = stats.frames === 1 ? dt : stats.avgMs * 0.95 + dt * 0.05;
     if (stats.frames > 30) stats.maxMs = Math.max(stats.maxMs, dt);
   }
 
   /* ---------- loop, visibility, resize ---------- */
-  var running = false, raf = 0, last = 0, onScreen = true;
-  function wantRun() { return onScreen && !document.hidden && !mqReduce.matches; }
+  var running = false, raf = 0, last = 0, onScreen = true, booted = false;
+  // Adaptive quality: where Canvas2D runs in software a frame can cost 15-60 ms. Every ~20
+  // frames, if the render averages > 10 ms, drop the backing-store scale (x0.7, floor 0.5).
+  // At the floor: > 10 ms halves the frame rate, > 16 ms settles on a static frame.
+  // The first-visit intro (heavier by design) is abandoned if its frames are slow.
+  var scale = 1, degraded = false, lastCost = 0, govN = 0, govSum = 0, govSkip = 6;
+  var stride = 1, tick = 0, introSlow = 0, seenDpr = window.devicePixelRatio || 1;
+  function wantRun() { return booted && onScreen && !document.hidden && !mqReduce.matches && !degraded; }
+  function govern() {
+    if (intro < 2.2) {                               // heavier by design: give up on it if slow
+      if (lastCost > 34 && ++introSlow >= 3) intro = 9;
+      return;
+    }
+    if (sweepT < 1) return;                          // channel wipes are short; don't judge them
+    if (govSkip > 0) { govSkip--; return; }
+    govN++; govSum += lastCost;
+    if (govN < 20) return;
+    var avg = govSum / govN;
+    govN = 0; govSum = 0;
+    if (avg > 10 && scale > 0.5) { scale = Math.max(0.5, Math.round(scale * 70) / 100); govSkip = 4; resize(); }
+    else if (avg > 16) { degraded = true; stats.degraded = true; updateHint(); sync(); }
+    else if (avg > 10) stride = 2;                   // ~30 fps leaves the main thread headroom
+    stats.scale = scale; stats.stride = stride; stats.windowMs = avg;
+  }
   function frame(now) {
     raf = 0;
     if (!running) return;
+    if (stride > 1 && (++tick % stride)) { raf = requestAnimationFrame(frame); return; }
+    var d = window.devicePixelRatio || 1;            // zoom / screen change without a CSS resize
+    if (d !== seenDpr) { seenDpr = d; resize(); }
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
     last = now;
     clock += dt;
@@ -421,21 +453,26 @@
     ptr.s += ptr.v * dt;
     stats.press = ptr.s;
     render(now);
-    raf = requestAnimationFrame(frame);
+    govern();
+    if (running) raf = requestAnimationFrame(frame);
   }
   function sync() {
     var should = wantRun();
     if (should && !running) { running = true; last = 0; if (!raf) raf = requestAnimationFrame(frame); }
     else if (!should && running) { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
-    if (!should) {
+    if (!should && booted) {
       if (mqReduce.matches) { clock = 0.42 * PERIOD; intro = 9; sweepT = 1; ptr.s = 0; ptr.v = 0; }
+      if (degraded) { intro = 9; sweepT = 1; ptr.s = 0; ptr.v = 0; ptr.target = 0; }
       if (W && H) render(performance.now());
     }
+    updateHint();
   }
 
   function resize() {
+    if (!booted) return;
+    seenDpr = window.devicePixelRatio || 1;
     var r = stage.getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.min(window.devicePixelRatio || 1, 2) * scale;
     var w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
     if (w !== W || h !== H) {
       W = canvas.width = w; H = canvas.height = h;
@@ -456,17 +493,19 @@
     sweepT = running ? 0 : 1;
     if (outCh) outCh.textContent = CH_LABEL[next];
     root.setAttribute('data-channel', next);
-    if (!running) render(performance.now());
+    if (!running && booted && W && H) render(performance.now());
   }
   radios.forEach(function (b, idx) {
     b.addEventListener('click', function () { setChannel(b.getAttribute('data-channel')); });
     b.addEventListener('keydown', function (e) {
-      var d = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? -1 : 0;
-      if (e.key === 'Home') { d = -idx; } else if (e.key === 'End') { d = radios.length - 1 - idx; }
-      if (!d && e.key !== 'Home') return;
+      var n = radios.length, to;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') to = (idx + 1) % n;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') to = (idx - 1 + n) % n;
+      else if (e.key === 'Home') to = 0;
+      else if (e.key === 'End') to = n - 1;
+      else return;
       e.preventDefault();
-      var nb = radios[(idx + d + radios.length) % radios.length];
-      setChannel(nb.getAttribute('data-channel'), true);
+      setChannel(radios[to].getAttribute('data-channel'), true);
     });
   });
 
@@ -475,7 +514,7 @@
     return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)];
   }
   stage.addEventListener('pointermove', function (e) {
-    if (mqReduce.matches) return;
+    if (!running) return;
     var p = local(e);
     ptr.tx = p[0]; ptr.ty = p[1];
     if (!ptr.active) { ptr.x = p[0]; ptr.y = p[1]; ptr.active = true; }
@@ -484,21 +523,48 @@
   stage.addEventListener('pointerleave', function () { ptr.target = 0; ptr.active = false; });
   stage.addEventListener('pointercancel', function () { ptr.target = 0; ptr.active = false; });
 
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (entries) {
-      onScreen = entries[entries.length - 1].isIntersecting; sync();
-    }, { rootMargin: '80px' }).observe(root);
+  function updateHint() {
+    if (hint) hint.hidden = !(mqHover.matches && !mqReduce.matches && !degraded && !SCATTER);
   }
-  document.addEventListener('visibilitychange', sync);
-  if (mqReduce.addEventListener) mqReduce.addEventListener('change', sync);
-  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
-  else window.addEventListener('resize', resize);
-  new MutationObserver(function () { buildAtlas(); if (!running) render(performance.now()); })
-    .observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+  function listen(mq, fn) { if (mq.addEventListener) mq.addEventListener('change', fn); else if (mq.addListener) mq.addListener(fn); }
+  // a DPR change (zoom, moving to another screen) may not change the CSS size, so watch it directly
+  function watchResolution() {
+    var mq = window.matchMedia('(resolution: ' + (window.devicePixelRatio || 1) + 'dppx)');
+    function changed() {
+      if (mq.removeEventListener) mq.removeEventListener('change', changed); else if (mq.removeListener) mq.removeListener(changed);
+      resize(); watchResolution();
+    }
+    listen(mq, changed);
+  }
 
-  buildAtlas();
-  resize();
-  root.classList.add('is-live');
-  if (outCh) outCh.textContent = CH_LABEL[channel];
-  sync();
+  // Heavy work (scene + sprite atlas) waits until after the first paint.
+  var themeTimer = 0;
+  function boot() {
+    if (booted) return;
+    booted = true;
+    build();
+    buildAtlas();
+    resize();
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        onScreen = entries[entries.length - 1].isIntersecting; sync();
+      }, { rootMargin: '80px' }).observe(root);
+    }
+    document.addEventListener('visibilitychange', sync);
+    listen(mqReduce, sync);
+    listen(mqHover, updateHint);
+    if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
+    window.addEventListener('resize', resize);
+    watchResolution();
+    // debounced: the original script flips the theme during load; rebuild once, only on a real change
+    new MutationObserver(function () {
+      clearTimeout(themeTimer);
+      themeTimer = setTimeout(function () { if (buildAtlas() && !running) render(performance.now()); }, 0);
+    }).observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+    root.classList.add('is-live');
+    if (outCh) outCh.textContent = CH_LABEL[channel];
+    sync();
+  }
+  updateHint();
+  requestAnimationFrame(function () { setTimeout(boot, 0); });
 })();

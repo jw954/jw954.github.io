@@ -8,7 +8,7 @@
   <script defer src="assets/script.js"></script>
   <meta name="description" content="Junhao Wang (Harry) is an Engineering Science (Machine Intelligence) student at the University of Toronto working on computational imaging, single-photon sensing, 3D/4D reconstruction and computer vision.">
   <link rel="canonical" href="https://jw954.github.io/">
-  <meta name="theme-color" content="#F4F6FA">
+  <meta name="theme-color" content="#0E1015">
   <meta property="og:type" content="profile">
   <meta property="og:site_name" content="Junhao Wang (Harry)">
   <meta property="og:title" content="Junhao Wang (Harry) | Computer Vision Researcher">
@@ -22,6 +22,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;family=Orbitron:wght@400;500;600&amp;family=Rajdhani:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap">
   <link rel="stylesheet" href="assets/splat/splat.css">
   <script defer src="assets/splat/site.js"></script>
@@ -46,7 +47,7 @@
   </script>
 </head>
 <body data-theme="dark" data-style="default" data-font="default">
-  <script>(function(){var d=document,h=d.documentElement,t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='dark'&&t!=='light')t='light';d.body.setAttribute('data-theme',t);h.setAttribute('data-theme',t);h.classList.add('js');try{var k='splat-seen:'+location.pathname;if(!sessionStorage.getItem(k)){h.classList.add('first-visit');sessionStorage.setItem(k,'1')}}catch(e){}})();</script>
+  <script>(function(){var d=document,h=d.documentElement,t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='dark'&&t!=='light')t='light';d.body.setAttribute('data-theme',t);h.setAttribute('data-theme',t);h.classList.add('js');var m=d.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0E1015':'#F4F6FA');try{var k='splat-seen:'+location.pathname;if(!sessionStorage.getItem(k)){h.classList.add('first-visit');sessionStorage.setItem(k,'1')}}catch(e){}})();</script>
   <a class="skip-link" href="#content">Skip to content</a>
   <div class="scroll-progress" aria-hidden="true"></div>
   <header class="site-header">
@@ -94,7 +95,7 @@
           </div>
           <div class="splat-readout" aria-hidden="true">4D Gaussians <span class="sep">·</span> 2,048 <span class="sep">·</span> t = <span data-t>0.42</span> <span class="sep">·</span> channel: <span data-ch>RGB</span></div>
         </div>
-        <figcaption>Illustration, rendered live in your browser: a toy 4D Gaussian scene inspired by FeatureEndo-4DGS, where one set of Gaussians renders colour, depth or semantic segments. Not research data. Point at it to press the surface.</figcaption>
+        <figcaption><span class="fig-no">Fig. 1</span> Illustration, rendered live in your browser: a toy 4D Gaussian scene inspired by FeatureEndo-4DGS, where one set of Gaussians renders colour, depth or semantic segments. Not research data.<span class="splat-hint" hidden> Point at it to press the surface.</span></figcaption>
       </figure>
     </section>
 
@@ -113,16 +114,19 @@
       <div class="item">
         <h3>FeatureEndo-4DGS: Real-Time Deformable Surgical Scene Reconstruction and Segmentation with 4D Gaussian Splatting</h3>
         <p class="meta">Kai Li*, <b>Junhao Wang*</b>, William Han, Ding Zhao — ML4H Symposium 2025 (PMLR) / <a href="https://arxiv.org/pdf/2503.06161" target="_blank">arXiv preprint</a></p>
+        <span class="pub-actions" data-venue="AHLI Machine Learning for Health (ML4H) Symposium Proceedings 2025"><button type="button" class="cite-btn" aria-haspopup="dialog">Cite</button></span>
         <p>Introduces the first real-time 4D Gaussian Splatting pipeline that jointly reconstructs and segments deformable surgical scenes via feature distillation from 2D foundation models. Outperformed SOTA methods on PSNR, SSIM, LPIPS, and RMSE metrics.</p>
       </div>
       <div class="item">
         <h3>23,000-Exposures/s 360fps-Readout Software-Defined Image Sensor with Motion-Adaptive Spatially Varying Imaging Speed</h3>
         <p class="meta">Roberto Rangel, Xiaonong Sun, Ayandev Barman, Rahul Gulve, Savo Bajic, Jingmin Wang, <b>Harry Wang</b>, David B. Lindell, Kiriakos N. Kutulakos, Roman Genov — IEEE VLSI 2024 / <a href="https://ieeexplore.ieee.org/document/10631335" target="_blank">paper</a></p>
+        <span class="pub-actions" data-venue="IEEE Symposium on VLSI Technology and Circuits 2024"><button type="button" class="cite-btn" aria-haspopup="dialog">Cite</button></span>
         <p>Developed automated fundamental matrix calculation and RAFT-inspired optical flow methods for pixel-coded epipolar imaging, enabling motion-adaptive spatially varying imaging at extreme frame rates.</p>
       </div>
       <div class="item">
         <h3>Comparing Defensive Pressures Using Possession Retention Probability and Expected Goals</h3>
         <p class="meta">David Awosoga*, Justin Cui*, Aujin Li*, Jaden Majumdar*, <b>Junhao Wang*</b> — LINHAC 2023 / <a href="https://www.ida.liu.se/research/sportsanalytics/LINHAC/LINHAC23/papers/paper-students-Waterloo-Toronto.pdf" target="_blank">paper</a></p>
+        <span class="pub-actions" data-venue="Linköping Hockey Analytics Conference (LINHAC) Proceedings 2023"><button type="button" class="cite-btn" aria-haspopup="dialog">Cite</button></span>
         <p>Finalist paper (Top 5/50+ international teams) analyzing defensive pressure metrics using XGBoost modeling on Sportlogiq SHL dataset, presented at Linköping University, Sweden.</p>
       </div>
     </section>
